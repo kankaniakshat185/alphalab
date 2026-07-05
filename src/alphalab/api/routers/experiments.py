@@ -5,7 +5,7 @@ FastAPI routing endpoints for managing Research Experiments and Factors.
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -103,7 +103,7 @@ async def create_experiment(
         name=exp_in.name,
         description=exp_in.description,
         status="RUNNING",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     db.add(new_exp)
     await db.flush()  # Flush to get the Experiment ID
@@ -116,7 +116,7 @@ async def create_experiment(
             experiment_id=new_exp.id,
             name=f.name,
             formula=f.formula,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         db.add(factor_rec)
         factor_records.append(factor_rec)

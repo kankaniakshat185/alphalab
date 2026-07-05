@@ -5,7 +5,7 @@ Integration tests for FastAPI routers, input schemas, and error pathways.
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -122,13 +122,13 @@ def test_submit_experiment_success(
         name="Momentum Study",
         description="Eval",
         status="RUNNING",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         factors=[
             Factor(
                 id=uuid.uuid4(),
                 name="MOM_10",
                 formula="Momentum(10)",
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
             )
         ],
     )
