@@ -4,7 +4,8 @@ alphalab.dsl.compiler
 Compiles a validated AST into a Pandas-compatible Python callable.
 """
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import pandas as pd
 

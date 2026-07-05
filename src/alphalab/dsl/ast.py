@@ -4,12 +4,10 @@ alphalab.dsl.ast
 Defines the Abstract Syntax Tree (AST) nodes for the Factor DSL.
 """
 
-from abc import ABC
 from dataclasses import dataclass
-from typing import List
 
 
-class ASTNode(ABC):
+class ASTNode:
     """Base class for all AST nodes."""
 
     pass
@@ -43,4 +41,4 @@ class FunctionCall(ASTNode):
     """Represents a function call (e.g., Momentum(20), Lag(Price, 1))."""
 
     name: str
-    arguments: List[ASTNode]
+    arguments: list[ASTNode]

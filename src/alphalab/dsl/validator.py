@@ -55,8 +55,11 @@ class StaticValidator:
                     raise DSLCompilationError(
                         f"Shift size for {node.name} must be an integer, got {shift}"
                     )
-        elif node.name in ("Momentum", "Volatility", "RollingMean", "RollingStd"):
-            if len(node.arguments) >= 1 and isinstance(node.arguments[0], NumberLiteral):
+        elif (
+            node.name in ("Momentum", "Volatility", "RollingMean", "RollingStd")
+            and len(node.arguments) >= 1
+            and isinstance(node.arguments[0], NumberLiteral)
+        ):
                 window = node.arguments[0].value
                 if window <= 0:
                     raise DataLeakageError(

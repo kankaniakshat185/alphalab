@@ -4,7 +4,6 @@ alphalab.dsl.parser
 Recursive descent parser for the Factor DSL.
 """
 
-from typing import List
 
 from alphalab.common.exceptions import DSLCompilationError
 from alphalab.dsl.ast import ASTNode, BinaryOp, FunctionCall, NumberLiteral, Variable
@@ -14,7 +13,7 @@ from alphalab.dsl.lexer import Token
 class Parser:
     """Parses a list of Tokens into an Abstract Syntax Tree (AST)."""
 
-    def __init__(self, tokens: List[Token]):
+    def __init__(self, tokens: list[Token]):
         self.tokens = tokens
         self.pos = 0
 

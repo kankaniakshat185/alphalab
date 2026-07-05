@@ -4,7 +4,7 @@ alphalab.dsl
 Domain-Specific Language (DSL) compiler for AlphaLab.
 """
 
-from typing import Callable
+from collections.abc import Callable
 
 import pandas as pd
 

@@ -6,7 +6,6 @@ Tokenizes mathematical formulas into a stream of tokens.
 
 import re
 from dataclasses import dataclass
-from typing import List
 
 from alphalab.common.exceptions import DSLCompilationError
 
@@ -42,7 +41,7 @@ class Lexer:
 
     def __init__(self, formula: str):
         self.formula = formula
-        self.tokens: List[Token] = []
+        self.tokens: list[Token] = []
         self._tokenize()
 
     def _tokenize(self) -> None:

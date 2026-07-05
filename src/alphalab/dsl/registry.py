@@ -4,13 +4,12 @@ alphalab.dsl.registry
 Defines the registry for supported primitives and functions in the Factor DSL.
 """
 
-from typing import Dict
 
 # Supported binary operators
 SUPPORTED_OPERATORS = {"+", "-", "*", "/"}
 
 # Supported functions: Mapping of function name to its expected argument count.
-SUPPORTED_FUNCTIONS: Dict[str, int] = {
+SUPPORTED_FUNCTIONS: dict[str, int] = {
     "Momentum": 1,     # e.g., Momentum(20)
     "Volatility": 1,   # e.g., Volatility(30)
     "RollingMean": 1,  # e.g., RollingMean(20)
