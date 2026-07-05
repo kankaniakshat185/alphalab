@@ -63,8 +63,8 @@ def test_evaluator_basic(mock_storage):
 def test_evaluator_no_data(mock_storage):
     """Test evaluator handles empty data."""
     mock_storage.read_ohlcv.return_value = MarketDataset(
-        data=pd.DataFrame(columns=["ticker", "date", "open", "high", "low", "close", "volume", "adj_close"]), 
-        start_date=date(2023, 1, 1), 
+        data=pd.DataFrame(columns=["ticker", "date", "open", "high", "low", "close", "volume", "adj_close"]),
+        start_date=date(2023, 1, 1),
         end_date=date(2023, 1, 2)
     )
     evaluator = FactorEvaluator(mock_storage)

@@ -5,7 +5,7 @@ FastAPI routing endpoints for User management.
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field
@@ -69,7 +69,7 @@ async def register_user(
         email=user_in.email,
         hashed_password=hashed_pwd,
         name=user_in.name,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
 
     db.add(new_user)
