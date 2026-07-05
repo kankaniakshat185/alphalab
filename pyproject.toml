@@ -46,8 +46,13 @@ classifiers = [
     "Typing :: Typed",
 ]
 
-# No runtime dependencies yet — added phase-by-phase as justified in ADRs
-dependencies = []
+# Runtime dependencies added for Phase 1 Data Layer
+dependencies = [
+    "yfinance>=0.2.40",
+    "duckdb>=1.0.0",
+    "pandas>=2.2.0",
+    "pydantic-settings>=2.3.0",
+]
 
 # -----------------------------------------------------------------------------
 # Optional dependency groups
