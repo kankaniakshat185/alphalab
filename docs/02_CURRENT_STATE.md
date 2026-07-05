@@ -1,18 +1,17 @@
 # AlphaLab — Current State
 
-> **Current phase:** Phase 2 — Factor DSL ✅ Complete
-> **Next phase:** Phase 3 — Backtesting Engine
-> **Last updated:** 2026-07-05
+> **Current phase:** Phase 3 — Backtesting Engine ✅ Complete
+> **Next phase:** Phase 4 — Background Workers
+> **Last updated:** 2026-07-06
 
 ---
 
-## Phase 2 Summary
+## Phase 3 Summary
 
-Phase 2 established a secure Domain-Specific Language (DSL) compiler for quantitative factors:
-1.  **Abstract Syntax Tree (AST)**: Core node definitions representing mathematical formulas.
-2.  **Lexer & Parser**: A from-scratch recursive descent parser converting raw strings like `Momentum(20) / Volatility(30)` into ASTs.
-3.  **Static Validator**: Pre-execution AST traversal to catch look-ahead bias (e.g., negative shifts in `Lag`) and invalid windows.
-4.  **Pandas Compiler**: Code generator that converts validated ASTs into executable Python functions operating natively on Pandas DataFrames.
+Phase 3 established the vectorized backtesting engine to evaluate compiled DSL factors over historical data:
+1.  **Evaluator (`evaluator.py`)**: Applies the compiled DSL function per-ticker across historical data safely without data leakage.
+2.  **Portfolio Constructor (`portfolio.py`)**: Converts raw alpha signals into target long/short portfolio weights via cross-sectional Z-Scoring, enforcing dollar-neutrality.
+3.  **Metrics Calculator (`metrics.py`)**: Computes core performance KPIs including annualized Sharpe Ratio, Max Drawdown, and Information Coefficient (IC).
 
 ---
 
@@ -23,6 +22,7 @@ Phase 2 established a secure Domain-Specific Language (DSL) compiler for quantit
 *   `src/alphalab/api/`: FastAPI routes, async db connections, model schemas, token authentication. (Phase 1)
 *   `src/alphalab/worker/`: Celery task definitions. (Phase 1)
 *   `src/alphalab/dsl/`: Lexer, Parser, AST, Validator, and Pandas Compiler. (Phase 2)
+*   `src/alphalab/engine/`: Backtesting evaluator, portfolio constructor, and metrics. (Phase 3)
 *   `alembic/`: Database migration versions.
 *   `tests/`: Extensive test suite covering data, endpoints, hashing, celery, and the DSL compiler.
 
