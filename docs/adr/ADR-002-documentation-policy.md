@@ -5,7 +5,7 @@
 | **Status** | Accepted |
 | **Date** | 2026-07-05 |
 | **Phase** | 0 — Engineering Foundation |
-| **Deciders** | VaishnaviRai287 |
+| **Deciders** | Vaishnavi Rai, Akshat Kankani |
 
 ---
 

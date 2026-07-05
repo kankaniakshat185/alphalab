@@ -60,17 +60,24 @@ AlphaLab is a two-service system backed by two databases.
 AlphaLab/
 ├── src/alphalab/          Installable Python package (src layout)
 │   ├── api/               FastAPI application (Phase 6)
-│   ├── data/              Market data, universe, DuckDB (Phase 1)
+│   ├── data/              Market data layer (Phase 1)
+│   │   ├── providers/     Strategy data providers (provider.py, yahoo_provider.py)
+│   │   ├── universe/      Constituentresolvers (base.py, nifty50.py)
+│   │   ├── storage/       Data persistence (base.py, duckdb.py, schema.py)
+│   │   ├── validation/    Data checks (base.py, schema.py, quality.py, calendar.py, corporate_actions.py, suite.py, report.py)
+│   │   ├── resources/     Static resources (nifty50_history.csv)
+│   │   ├── transformer.py Raw DataFrame to MarketDataset converter
+│   │   └── pipeline.py    Ingestion pipeline orchestrator
 │   ├── dsl/               Factor DSL compiler (Phase 2)
 │   ├── engine/            Backtest + Robustness engines (Phase 3, 5)
 │   ├── worker/            Celery tasks (Phase 4)
-│   ├── common/            Shared types, exceptions (Phase 1+)
-│   ├── config/            Settings, env loading (Phase 1)
-│   └── utils/             Pure utilities (Phase 1+)
+│   ├── common/            Shared domain types (types.py), exceptions (exceptions.py)
+│   ├── config/            Settings (settings.py)
+│   └── utils/             Pure utilities
 ├── web/                   Next.js frontend (Phase 8)
 ├── tests/                 Test suite (mirrors src/ structure)
 ├── infra/                 Docker Compose, .env.example
-├── docs/                  Public documentation
+├── docs/                  Public documentation (see data-layer.md for Data Layer details)
 └── .github/               CI/CD workflows, templates
 ```
 

@@ -1,0 +1,13 @@
+"""
+alphalab.api.models.base
+========================
+Defines the base class for SQLAlchemy declarative models.
+"""
+
+from sqlalchemy.orm import DeclarativeBase
+
+
+class Base(DeclarativeBase):
+    """Base class for all application database models."""
+
+    pass

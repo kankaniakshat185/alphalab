@@ -1,104 +1,79 @@
 # AlphaLab — Tasks
 
-> **Current phase:** Phase 0 — Engineering Foundation
-> **Status:** Complete ✅
+> **Current phase:** Phase 2 — Factor DSL
+> **Status:** Planned 🔲
 > **Updated:** 2026-07-05
 
-This file tracks the granular task checklist for the current phase.
-It is updated as work progresses. It is not a roadmap (see `docs/00_MASTER_PLAN.md`)
-and not a milestone tracker (see GitHub Project board).
+This file tracks the granular task checklist for the current and completed phases.
 
 ---
 
-## Phase 0 — Engineering Foundation
+## Phase 0 — Engineering Foundation (Complete ✅)
 
-### Repository Structure
-- [x] `.gitignore` — excludes `internal/`, `.env`, caches
-- [x] `.python-version` — pins Python 3.12
-- [x] `.editorconfig` — consistent formatting
-- [x] `.pre-commit-config.yaml` — ruff, file hygiene, YAML/TOML validation
-- [x] `pyproject.toml` — hatchling, ruff, mypy, pytest configured
-- [x] `LICENSE` — MIT
-- [x] `web/.gitkeep` — Phase 8 placeholder
-
-### Source Package Skeletons
-- [x] `src/alphalab/__init__.py`
-- [x] `src/alphalab/api/__init__.py`
-- [x] `src/alphalab/data/__init__.py`
-- [x] `src/alphalab/dsl/__init__.py`
-- [x] `src/alphalab/engine/__init__.py`
-- [x] `src/alphalab/worker/__init__.py`
-- [x] `src/alphalab/common/__init__.py`
-- [x] `src/alphalab/config/__init__.py`
-- [x] `src/alphalab/utils/__init__.py`
-
-### Tests
-- [x] `tests/__init__.py`
-- [x] `tests/conftest.py`
-- [x] `tests/test_package.py` — 11 smoke tests (all pass)
-
-### Infrastructure
-- [x] `infra/docker-compose.yml` — PostgreSQL 16 + Redis 7 + pgAdmin (optional)
-- [x] `infra/.env.example` — all required environment variables documented
-
-### Public Documentation
-- [x] `docs/00_MASTER_PLAN.md`
-- [x] `docs/01_ARCHITECTURE.md`
-- [x] `docs/02_CURRENT_STATE.md`
-- [x] `docs/03_NEXT_STAGE.md`
-- [x] `docs/adr/ADR-001-repository-structure.md`
-- [x] `docs/adr/ADR-002-documentation-policy.md`
-- [x] `docs/adr/ADR-003-project-architecture.md`
-- [x] `docs/diagrams/.gitkeep`
-
-### Private Documentation (internal/ — gitignored)
-- [x] `internal/development_log/Phase_00.md`
-- [x] `internal/learning_notes/Phase_00_Engineering_Foundation.md`
-- [x] `internal/interview_defense/README.md`
-- [x] `internal/file_reference/README.md`
-
-### GitHub
-- [x] `.github/CODEOWNERS`
-- [x] `.github/PULL_REQUEST_TEMPLATE.md`
-- [x] `.github/ISSUE_TEMPLATE/bug_report.md`
-- [x] `.github/ISSUE_TEMPLATE/feature_request.md`
-- [x] `.github/ISSUE_TEMPLATE/task.md`
-- [x] `.github/workflows/lint.yml`
-- [x] `.github/workflows/test.yml`
-- [x] `.github/workflows/install.yml`
-
-### Root Documentation
-- [x] `README.md`
-- [x] `CONTRIBUTING.md`
-- [x] `TASKS.md` (this file)
-
-### Definition of Done Checklist
-- [x] All files created and non-empty
-- [x] `pip install -e ".[dev]"` succeeds
-- [x] `pytest tests/ -v` — 11 passed
-- [x] `ruff check .` — 0 errors
-- [x] `mypy src/` — 0 errors
-- [x] `pre-commit run --all-files` — all hooks pass
-- [x] `docker compose -f infra/docker-compose.yml config` — valid
-- [x] `git status` — `internal/` not tracked, `.env` not tracked
-- [x] `docs/02_CURRENT_STATE.md` reflects Phase 0 complete
-- [x] `docs/03_NEXT_STAGE.md` describes Phase 1
-- [x] `internal/development_log/Phase_00.md` written
-- [x] `internal/learning_notes/Phase_00_Engineering_Foundation.md` written
-
-### GitHub Steps (You do these manually)
-- [ ] Create repository at https://github.com/VaishnaviRai287/alphalab
-- [ ] `git init && git add . && git commit -m "chore(repo): Phase 0 engineering foundation"`
-- [ ] `git push -u origin main`
-- [ ] Create `dev` branch and push
-- [ ] Configure branch protection on `main`
-- [ ] Create GitHub Project board "AlphaLab"
-- [ ] Create milestones: Phase 0 → Phase 11
-- [ ] Configure labels
+- [x] Pinned Python version, editor config, and pre-commit hooks.
+- [x] Package skeleton directories and base imports.
+- [x] CI/CD workflows and pytest smoketest setup.
+- [x] PostgreSQL + Redis Docker container configurations.
+- [x] Base master plan, architecture guides, and Phase 0 ADRs.
 
 ---
 
-## Next Phase
+## Phase 1 — Data & Backend Foundation (Complete ✅)
 
-→ Phase 1 — Data Foundation
-→ See [`docs/03_NEXT_STAGE.md`](docs/03_NEXT_STAGE.md)
+### Core Models & Shared Resources (Developer A)
+- [x] Added dependencies to `pyproject.toml` (`yfinance`, `duckdb`, `pandas`, `pydantic-settings`).
+- [x] Created `src/alphalab/config/settings.py` for database paths, retries, and thresholds.
+- [x] Created `src/alphalab/common/types.py` defining dataclass models (`MarketDataset`, `UniverseEntry`).
+- [x] Created `src/alphalab/common/exceptions.py` defining custom domain exceptions.
+- [x] Added `src/alphalab/data/resources/nifty50_history.csv` for NIFTY 50 membership intervals.
+
+### Storage & Fetching Layer (Developer A)
+- [x] Created `src/alphalab/data/storage/schema.py` for decoupled table initialization.
+- [x] Created `src/alphalab/data/storage/base.py` defining database action abstractions.
+- [x] Created `src/alphalab/data/storage/duckdb.py` driver writing data in vectorized batches.
+- [x] Created `src/alphalab/data/providers/provider.py` abstract interface.
+- [x] Created `src/alphalab/data/providers/yahoo_provider.py` bulk downloader.
+- [x] Created `src/alphalab/data/transformer.py` cleaning and wrapping dataframes.
+- [x] Created `src/alphalab/data/universe/base.py` and `nifty50.py` resolving point-in-time constituents.
+
+### Validation Engine (Developer A)
+- [x] Created `src/alphalab/data/validation/report.py` defining diagnostic lists.
+- [x] Created `src/alphalab/data/validation/schema.py` checking price bounds and null values.
+- [x] Created `src/alphalab/data/validation/quality.py` checking missing bars and spikes.
+- [x] Created `src/alphalab/data/validation/calendar.py` asserting weekday alignments.
+- [x] Created `src/alphalab/data/validation/corporate_actions.py` detecting splits/dividends.
+- [x] Created `src/alphalab/data/validation/suite.py` orchestrating individual checks.
+- [x] Created `src/alphalab/data/pipeline.py` managing fetching, validating, filtering, and database loading.
+
+### Backend Infrastructure & Security (Developer B)
+- [x] Configured backend environment parameters in `settings.py`.
+- [x] Set up async database engine in `src/alphalab/api/database/connection.py`.
+- [x] Created SQLAlchemy schema models: `User`, `Experiment`, `Factor`, `BacktestResult`, `RobustnessResult`.
+- [x] Implemented bcrypt password hashing and verification in `src/alphalab/api/auth/hash.py`.
+- [x] Created JWT authentication helpers and `get_current_user` route dependency in `src/alphalab/api/auth/jwt.py`.
+
+### FastAPI Routers & Workers (Developer B)
+- [x] Assembled main app in `src/alphalab/api/main.py`.
+- [x] Coded token login route (`POST /auth/token`) in `src/alphalab/api/routers/auth.py`.
+- [x] Coded profile registration & lookup routes in `src/alphalab/api/routers/users.py`.
+- [x] Coded experiment submissions routes (spawning workers) in `src/alphalab/api/routers/experiments.py`.
+- [x] Configured Celery tasks routing with Redis broker in `src/alphalab/worker/celery.py` and `tasks.py`.
+- [x] Initialized Alembic migration configuration and version `001_initial_schema.py`.
+
+### Documentation & Verification
+- [x] Created tests for all modules under `tests/`.
+- [x] Written ADRs: ADR-004, ADR-005, and ADR-006.
+- [x] Written development log `internal/development_log/Phase_01.md`.
+- [x] Written learning notes under `internal/learning_notes/`.
+
+---
+
+## Phase 2 — Factor DSL (Planned 🔲)
+
+- [ ] Define Grammar and AST nodes (`ast.py`).
+- [ ] Implement Token Lexer (`lexer.py`).
+- [ ] Implement AST Parser (`parser.py`).
+- [ ] Implement AST Static Checker (`validator.py` - look-ahead bias, negative windows).
+- [ ] Implement Code Generator (`compiler.py` - AST to python callable).
+- [ ] Write unit tests for Lexer, Parser, Validator, and Compiler.
+- [ ] Document Phase 2 ADRs, development logs, and learning notes.

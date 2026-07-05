@@ -2,10 +2,10 @@
 
 | Field | Value |
 |---|---|
-| **Status** | Accepted (planned — implementation begins Phase 1) |
+| **Status** | Accepted |
 | **Date** | 2026-07-05 |
 | **Phase** | 0 — Engineering Foundation |
-| **Deciders** | VaishnaviRai287 |
+| **Deciders** | Vaishnavi Rai, Akshat Kankani |
 
 ---
 
