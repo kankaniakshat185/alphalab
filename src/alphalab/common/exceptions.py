@@ -15,3 +15,15 @@ class DataError(AlphaLabError):
     """Raised when data retrieval, storage, or ingestion operations fail."""
 
     pass
+
+
+class DSLCompilationError(AlphaLabError):
+    """Raised when the DSL compiler encounters a syntax or parsing error."""
+
+    pass
+
+
+class DataLeakageError(AlphaLabError):
+    """Raised when the static analyzer detects temporal look-ahead bias."""
+
+    pass

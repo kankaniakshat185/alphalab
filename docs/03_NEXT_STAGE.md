@@ -1,20 +1,21 @@
 # AlphaLab — Next Stage
 
-> **Upcoming phase:** Phase 2 — Factor DSL
-> **Depends on:** Phase 1 complete ✅
+> **Upcoming phase:** Phase 3 — Backtesting Engine
+> **Depends on:** Phase 1 & 2 complete ✅
 > **Last updated:** 2026-07-05
 
 ---
 
 ## Objective
 
-Design and build a secure Domain-Specific Language (DSL) compiler for quantitative factors:
-*   Allows researchers to write math formulas (e.g., `Momentum(10) / Volatility(20)`) as plain strings.
-*   Converts the formula strings into an Abstract Syntax Tree (AST).
-*   Statically validates the AST to prevent look-ahead bias (e.g., checking that variables do not access future time steps) and validates window bounds.
-*   Compiles the validated tree into a callable Python function that can be executed on historical price series.
+Design and build the vectorized backtesting engine that evaluates compiled Factor DSL functions over historical data.
 
-No backtesting or API integration. Compiler pipeline only.
+The engine must:
+*   Accept a compiled Factor DSL callable.
+*   Fetch historical market data (`Price`, `Volume`, etc.) from DuckDB.
+*   Apply the factor function across the DataFrame to generate alpha signals.
+*   Simulate long/short portfolio construction based on these signals.
+*   Calculate core performance metrics (Sharpe Ratio, Max Drawdown, Information Coefficient).
 
 ---
 
@@ -22,66 +23,35 @@ No backtesting or API integration. Compiler pipeline only.
 
 | Deliverable | Description |
 |---|---|
-| AST Definitions | Base structures representing operations, literals, and functions. |
-| Lexer | Tokenizes raw formula strings into parsed lexical tokens. |
-| Parser | Compiles linear tokens into a nested Abstract Syntax Tree (AST). |
-| Static Validator | Performs checks for look-ahead bias, negative windows, and complexity bounds. |
-| Code Generator | Compiles the AST into an executable Python callable. |
-| Phase 2 Tests | Unit tests validating tokenization, AST creation, validation errors, and compiler execution. |
-| Phase 2 Learning Notes | Compiler theory, AST structures, recursive descent parsing. |
-| Phase 2 ADRs | Factor DSL grammar rules and security safety gates. |
+| Vectorized Evaluator | Applies the factor to the asset universe matrix efficiently. |
+| Portfolio Constructor | Translates raw alpha signals into target portfolio weights. |
+| Performance Calculator | Calculates cumulative returns and risk metrics. |
+| Phase 3 Tests | Unit tests validating metric calculations against known data. |
+| Phase 3 ADRs | Decisions on signal-to-weight translation methods (e.g. rank-based vs z-score). |
 
 ---
 
 ## Files Expected to Change or Be Created
 
 ```
-src/alphalab/dsl/
+src/alphalab/engine/
     __init__.py
-    ast.py             Abstract Syntax Tree nodes definition
-    lexer.py           Lexer (Tokenizes string formulas)
-    parser.py          Parser (Converts tokens to AST)
-    validator.py       AST static checker (prevent look-ahead bias)
-    compiler.py        Code generator (AST to callable Python function)
+    evaluator.py       (Executes DSL output against DataFrames)
+    portfolio.py       (Weight allocation)
+    metrics.py         (Sharpe, Drawdown, etc.)
 
 tests/
-    dsl/
-        test_lexer.py
-        test_parser.py
-        test_validator.py
-        test_compiler.py
+    engine/
+        test_evaluator.py
+        test_portfolio.py
+        test_metrics.py
 
 docs/
-    02_CURRENT_STATE.md      Updated: Phase 2 complete
-    03_NEXT_STAGE.md         Rewritten: Phase 3
+    02_CURRENT_STATE.md      Updated: Phase 3 complete
+    03_NEXT_STAGE.md         Rewritten: Phase 4
     adr/
-        ADR-007-dsl-grammar.md
-        ADR-008-static-lookahead-checker.md
+        ADR-009-portfolio-construction.md
 
 internal/
-    development_log/Phase_02.md
-    learning_notes/
-        AST_Design.md
-        Parsing_Algorithms.md
-        Static_Analysis.md
+    development_log/Phase_03.md
 ```
-
----
-
-## Key Concepts (Phase 2 Interview Topics)
-*   **Security Model**: Why we compile a DSL instead of using `eval()` or sandboxing raw Python (arbitrary code execution prevention).
-*   **Static Leakage Check**: How to detect temporal look-ahead bias (checking index offsets for future data access).
-*   **AST compilation**: How compiler passes separate syntax parsing from semantics validation.
-*   **Recursive descent parsing**: Standard grammar parsing methodologies.
-
----
-
-## Implementation Order
-
-1.  `src/alphalab/dsl/ast.py`: Define node dataclasses.
-2.  `src/alphalab/dsl/lexer.py`: Build string-to-token parsing.
-3.  `src/alphalab/dsl/parser.py`: Build token-to-AST parsing.
-4.  `src/alphalab/dsl/validator.py`: Code checkers (look-ahead bias, windows checks).
-5.  `src/alphalab/dsl/compiler.py`: Generate runnable python lambdas.
-6.  Unit tests for parser, compiler, and validator.
-7.  Documentation (ADRs, learning notes, dev logs).
