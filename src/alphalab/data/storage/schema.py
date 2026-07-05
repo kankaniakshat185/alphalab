@@ -6,13 +6,15 @@ Defines the SchemaManager to initialize database table layouts.
 
 import logging
 
+import duckdb
+
 logger = logging.getLogger("alphalab.data.storage.schema")
 
 
 class SchemaManager:
     """Manages table definition and validation for the storage engine."""
 
-    def initialize_schema(self, conn) -> None:
+    def initialize_schema(self, conn: duckdb.DuckDBPyConnection) -> None:
         """Create analytical tables in the database if they do not exist.
 
         Args:
