@@ -19,6 +19,7 @@ from alphalab.worker.tasks import run_backtest_task, run_robustness_task
 def test_run_backtest_task_success(mock_session_maker: MagicMock) -> None:
     """Verify that the backtest task inserts results and updates database tables."""
     mock_session = AsyncMock()
+    mock_session.add = MagicMock()
     mock_session_maker.return_value = mock_session
     mock_session.__aenter__.return_value = mock_session
 
@@ -70,6 +71,7 @@ def test_run_backtest_task_success(mock_session_maker: MagicMock) -> None:
 def test_run_robustness_task_success(mock_session_maker: MagicMock) -> None:
     """Verify that the robustness task inserts results and updates database tables."""
     mock_session = AsyncMock()
+    mock_session.add = MagicMock()
     mock_session_maker.return_value = mock_session
     mock_session.__aenter__.return_value = mock_session
 

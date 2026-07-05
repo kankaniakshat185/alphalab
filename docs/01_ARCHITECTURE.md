@@ -1,8 +1,8 @@
 # AlphaLab — Architecture
 
 > **Status:** Living document — updated after every phase
-> **Current phase:** Phase 0 — Engineering Foundation
-> **Last updated:** 2026-07-05
+> **Current phase:** Phase 3 — Backtesting Engine
+> **Last updated:** 2026-07-06
 
 ---
 
@@ -235,25 +235,22 @@ CREATE TABLE factor_values (
 
 ---
 
-## 7. Current Implementation State (Phase 0)
+## 7. Current Implementation State (Phase 3)
 
 **What exists:**
 - Complete repository structure with `src/` layout
 - Eight package skeletons with documented future responsibilities
 - `pyproject.toml` with full tool configuration
 - Docker Compose with PostgreSQL + Redis
-- Three CI/CD workflows (lint, test, install)
-- Pre-commit hooks
-- Public documentation framework
-- Phase 0 smoke tests (11 tests)
+- Data Layer (Phase 1): Ingestion pipelines, schema validation, DuckDB storage, and NIFTY50 point-in-time universe.
+- API & Worker Foundation (Phase 1): FastAPI routing, JWT auth, SQLAlchemy connections, Alembic migrations, Celery tasks configuration.
+- Factor DSL Compiler (Phase 2): Lexer, Parser, AST, Static Look-ahead Validator, and Pandas Code Generator.
+- Backtesting Engine (Phase 3): Vectorized `FactorEvaluator`, cross-sectional `PortfolioConstructor`, and `PerformanceCalculator`.
 
 **What does not exist yet:**
-- Any business logic
-- Any database models or migrations
-- Any API routes
-- Any DSL implementation
-- Any engine implementation
-- Any Celery tasks
-- Any frontend
+- Async job orchestration for the engine (Phase 4)
+- Robustness evaluation engine (Phase 5)
+- User-facing REST API for submitting factors (Phase 6)
+- Frontend Leaderboard / Factor IDE (Phase 8)
 
 Everything above is intentional. Phase 0 is the engineering foundation only.

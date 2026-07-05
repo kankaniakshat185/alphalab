@@ -1,21 +1,21 @@
 # AlphaLab — Next Stage
 
-> **Upcoming phase:** Phase 3 — Backtesting Engine
-> **Depends on:** Phase 1 & 2 complete ✅
-> **Last updated:** 2026-07-05
+> **Upcoming phase:** Phase 4 — Background Workers & Asynchronous Execution
+> **Depends on:** Phase 1, 2, & 3 complete ✅
+> **Last updated:** 2026-07-06
 
 ---
 
 ## Objective
 
-Design and build the vectorized backtesting engine that evaluates compiled Factor DSL functions over historical data.
+Design and implement the Celery worker tasks that orchestrate the pipeline from DSL compilation to Factor Evaluation and database storage.
 
-The engine must:
-*   Accept a compiled Factor DSL callable.
-*   Fetch historical market data (`Price`, `Volume`, etc.) from DuckDB.
-*   Apply the factor function across the DataFrame to generate alpha signals.
-*   Simulate long/short portfolio construction based on these signals.
-*   Calculate core performance metrics (Sharpe Ratio, Max Drawdown, Information Coefficient).
+The background worker must:
+*   Receive a task via Redis (e.g., `run_backtest(factor_id)`).
+*   Fetch the factor metadata from PostgreSQL.
+*   Compile the DSL string into a Pandas callable.
+*   Run the FactorEvaluator, PortfolioConstructor, and PerformanceCalculator.
+*   Write the results back to the `backtest_results` PostgreSQL table and update the job status.
 
 ---
 
@@ -23,35 +23,26 @@ The engine must:
 
 | Deliverable | Description |
 |---|---|
-| Vectorized Evaluator | Applies the factor to the asset universe matrix efficiently. |
-| Portfolio Constructor | Translates raw alpha signals into target portfolio weights. |
-| Performance Calculator | Calculates cumulative returns and risk metrics. |
-| Phase 3 Tests | Unit tests validating metric calculations against known data. |
-| Phase 3 ADRs | Decisions on signal-to-weight translation methods (e.g. rank-based vs z-score). |
+| Celery Tasks | `src/alphalab/worker/tasks.py` defining the async entrypoints. |
+| DB Integrations | Connecting the SQLAlchemy DB session within the Celery worker context. |
+| Phase 4 Tests | Integration tests that mock Redis/Postgres and trigger full end-to-end task execution. |
 
 ---
 
 ## Files Expected to Change or Be Created
 
 ```
-src/alphalab/engine/
-    __init__.py
-    evaluator.py       (Executes DSL output against DataFrames)
-    portfolio.py       (Weight allocation)
-    metrics.py         (Sharpe, Drawdown, etc.)
+src/alphalab/worker/
+    tasks.py           (Celery task definitions)
+    celery_app.py      (Celery configuration and routing)
 
-tests/
-    engine/
-        test_evaluator.py
-        test_portfolio.py
-        test_metrics.py
+tests/worker/
+    test_tasks.py      (Task execution mocks)
 
 docs/
-    02_CURRENT_STATE.md      Updated: Phase 3 complete
-    03_NEXT_STAGE.md         Rewritten: Phase 4
-    adr/
-        ADR-009-portfolio-construction.md
+    02_CURRENT_STATE.md      Updated: Phase 4 complete
+    03_NEXT_STAGE.md         Rewritten: Phase 5 (Robustness)
 
 internal/
-    development_log/Phase_03.md
+    development_log/Phase_04.md
 ```
