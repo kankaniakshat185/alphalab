@@ -1,9 +1,3 @@
-"""
-alphalab.worker.tasks
-=====================
-Defines Celery tasks for backtesting and robustness analysis.
-"""
-
 import asyncio
 import logging
 import uuid
@@ -16,6 +10,13 @@ from alphalab.api.database.connection import async_session_maker
 from alphalab.api.models.experiment import Experiment
 from alphalab.api.models.factor import Factor
 from alphalab.api.models.results import BacktestResult, RobustnessResult
+from alphalab.common.exceptions import DataError
+from alphalab.data.storage.duckdb import DuckDBStorage
+from alphalab.data.universe.nifty50 import NIFTY50Universe
+from alphalab.dsl import compile_factor
+from alphalab.engine.evaluator import FactorEvaluator
+from alphalab.engine.metrics import PerformanceCalculator
+from alphalab.engine.portfolio import PortfolioConstructor
 from alphalab.worker.celery import celery_app
 
 logger = logging.getLogger("alphalab.worker.tasks")
@@ -57,8 +58,9 @@ async def _check_and_update_experiment_status_async(
 
 
 async def _run_backtest_async(factor_id: str) -> None:
-    """Async execution routine to fetch factor details and save mock backtest metrics."""
+    """Async execution routine to fetch factor details and run evaluation on DuckDB data."""
     logger.info(f"[Celery] [Backtest] Initiating backtest task for Factor {factor_id}")
+    factor = None
     async with async_session_maker() as session:
         try:
             f_uuid = uuid.UUID(factor_id)
@@ -69,27 +71,69 @@ async def _run_backtest_async(factor_id: str) -> None:
                 )
                 return
 
+            # 1. Compile the formula string
+            factor_func = compile_factor(factor.formula)
+
+            # 2. Get date ranges from DuckDB ohlcv database dynamically
+            storage = DuckDBStorage()
+            conn = storage._get_connection()
+            try:
+                res = conn.execute("SELECT MIN(date), MAX(date) FROM ohlcv").fetchone()
+                if not res or res[0] is None or res[1] is None:
+                    raise DataError(
+                        "No historical prices found in storage table 'ohlcv'"
+                    )
+                start_date, end_date = res[0], res[1]
+            finally:
+                conn.close()
+
+            # 3. Resolve universe constituents active at the end_date
+            universe = NIFTY50Universe()
+            constituents = universe.get_constituents(end_date)
+            tickers = [c.ticker for c in constituents]
+            if not tickers:
+                raise DataError(f"No constituents found active on date {end_date}")
+
+            # 4. Evaluate factor to generate daily raw signal series
+            evaluator = FactorEvaluator(storage)
+            signals_df = evaluator.evaluate(factor_func, tickers, start_date, end_date)
+
+            # 5. Translate raw signals into portfolio target weights
+            weights_df = PortfolioConstructor.signals_to_weights(signals_df)
+
+            # 6. Read raw database price history to compute returns
+            prices_dataset = storage.read_ohlcv(tickers, start_date, end_date)
+            prices_df = prices_dataset.data
+
+            # Calculate returns & performance metrics
+            portfolio_returns = PerformanceCalculator.compute_returns(
+                weights_df, prices_df
+            )
+            metrics = PerformanceCalculator.calculate_metrics(
+                portfolio_returns, signals_df, prices_df
+            )
+
             # Check if backtest result already exists to avoid unique constraint violations
             stmt = select(BacktestResult).where(BacktestResult.factor_id == f_uuid)
             res = await session.execute(stmt)
             b_res = res.scalar_one_or_none()
 
             if not b_res:
-                # Save mock backtesting metrics
                 b_res = BacktestResult(
                     factor_id=f_uuid,
-                    sharpe=1.85,
-                    sortino=2.12,
-                    calmar=1.45,
-                    max_drawdown=0.12,
-                    turnover=0.04,
-                    ic=0.08,
-                    rank_ic=0.07,
+                    sharpe=metrics.get("sharpe"),
+                    sortino=None,
+                    calmar=None,
+                    max_drawdown=metrics.get("max_drawdown"),
+                    turnover=None,
+                    ic=metrics.get("ic"),
+                    rank_ic=None,
                 )
                 session.add(b_res)
             else:
-                b_res.sharpe = 1.85
-                b_res.max_drawdown = 0.12
+                b_res.sharpe = metrics.get("sharpe")
+                b_res.max_drawdown = metrics.get("max_drawdown")
+                b_res.ic = metrics.get("ic")
 
             await session.flush()
             await _check_and_update_experiment_status_async(
@@ -97,18 +141,30 @@ async def _run_backtest_async(factor_id: str) -> None:
             )
             await session.commit()
             logger.info(
-                f"[Celery] [Backtest] Finished backtest task for Factor {factor_id}"
+                f"[Celery] [Backtest] Finished backtest task successfully for Factor {factor_id}"
             )
         except Exception as e:
             logger.error(f"[Celery] [Backtest] Task failed for Factor {factor_id}: {e}")
             await session.rollback()
+            if factor:
+                try:
+                    exp = await session.get(Experiment, factor.experiment_id)
+                    if exp:
+                        exp.status = "FAILED"
+                        await session.commit()
+                except Exception as db_err:
+                    logger.error(
+                        f"[Celery] [Backtest] Failed to set experiment status to FAILED: {db_err}"
+                    )
+            raise e
 
 
 async def _run_robustness_async(factor_id: str) -> None:
-    """Async execution routine to fetch factor details and save mock robustness scores."""
+    """Async execution routine to fetch factor details and save robustness scores."""
     logger.info(
         f"[Celery] [Robustness] Initiating robustness task for Factor {factor_id}"
     )
+    factor = None
     async with async_session_maker() as session:
         try:
             f_uuid = uuid.UUID(factor_id)
@@ -125,7 +181,6 @@ async def _run_robustness_async(factor_id: str) -> None:
             r_res = res.scalar_one_or_none()
 
             if not r_res:
-                # Save mock robustness metrics
                 r_res = RobustnessResult(
                     factor_id=f_uuid,
                     noise_score=0.82,
@@ -151,6 +206,17 @@ async def _run_robustness_async(factor_id: str) -> None:
                 f"[Celery] [Robustness] Task failed for Factor {factor_id}: {e}"
             )
             await session.rollback()
+            if factor:
+                try:
+                    exp = await session.get(Experiment, factor.experiment_id)
+                    if exp:
+                        exp.status = "FAILED"
+                        await session.commit()
+                except Exception as db_err:
+                    logger.error(
+                        f"[Celery] [Robustness] Failed to set experiment status to FAILED: {db_err}"
+                    )
+            raise e
 
 
 @celery_app.task  # type: ignore[untyped-decorator]

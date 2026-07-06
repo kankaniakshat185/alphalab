@@ -1,7 +1,7 @@
 """
 tests.worker.test_tasks
 =======================
-Unit tests for Celery task handlers and database result writes.
+Unit tests for Celery task handlers and database result writes using mocks.
 """
 
 import uuid
@@ -16,8 +16,23 @@ from alphalab.worker.tasks import run_backtest_task, run_robustness_task
 
 @pytest.mark.unit
 @patch("alphalab.worker.tasks.async_session_maker")
-def test_run_backtest_task_success(mock_session_maker: MagicMock) -> None:
+@patch("alphalab.worker.tasks.compile_factor")
+@patch("alphalab.worker.tasks.DuckDBStorage")
+@patch("alphalab.worker.tasks.NIFTY50Universe")
+@patch("alphalab.worker.tasks.FactorEvaluator")
+@patch("alphalab.worker.tasks.PortfolioConstructor")
+@patch("alphalab.worker.tasks.PerformanceCalculator")
+def test_run_backtest_task_success(
+    mock_perf_calc: MagicMock,
+    mock_portfolio: MagicMock,
+    mock_evaluator_class: MagicMock,
+    mock_universe_class: MagicMock,
+    mock_storage_class: MagicMock,
+    mock_compile_factor: MagicMock,
+    mock_session_maker: MagicMock,
+) -> None:
     """Verify that the backtest task inserts results and updates database tables."""
+    # Mock database session
     mock_session = AsyncMock()
     mock_session.add = MagicMock()
     mock_session_maker.return_value = mock_session
@@ -31,7 +46,6 @@ def test_run_backtest_task_success(mock_session_maker: MagicMock) -> None:
         formula="Momentum(10)",
     )
 
-    # Mock session.get returning the mock factor
     mock_session.get.return_value = mock_factor
 
     # Mock checking previous results (return None for no duplicate)
@@ -43,6 +57,35 @@ def test_run_backtest_task_success(mock_session_maker: MagicMock) -> None:
     mock_factors_executor.scalars.return_value.all.return_value = [mock_factor]
 
     mock_session.execute.side_effect = [mock_executor, mock_factors_executor]
+
+    # Mock storage connections
+    mock_storage = MagicMock()
+    mock_storage_class.return_value = mock_storage
+    from datetime import date
+
+    mock_conn = MagicMock()
+    mock_storage._get_connection.return_value = mock_conn
+    mock_conn.execute.return_value.fetchone.return_value = (
+        date(2023, 1, 1),
+        date(2023, 1, 10),
+    )
+
+    # Mock Evaluator, Universe, Portfolio, and PerformanceCalculator outputs to return mock values
+    mock_universe = MagicMock()
+    mock_universe_class.return_value = mock_universe
+    mock_universe.get_constituents.return_value = [MagicMock(ticker="AAPL")]
+
+    mock_evaluator = MagicMock()
+    mock_evaluator_class.return_value = mock_evaluator
+    mock_evaluator.evaluate.return_value = MagicMock()
+
+    mock_portfolio.signals_to_weights.return_value = MagicMock()
+    mock_perf_calc.compute_returns.return_value = MagicMock()
+    mock_perf_calc.calculate_metrics.return_value = {
+        "sharpe": 1.85,
+        "max_drawdown": 0.12,
+        "ic": 0.08,
+    }
 
     # Trigger the task
     run_backtest_task(str(factor_id))
