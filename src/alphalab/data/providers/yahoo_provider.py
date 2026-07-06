@@ -80,6 +80,7 @@ class YahooProvider(MarketDataProvider):
                     progress=False,
                     threads=True,
                     timeout=self.timeout,
+                    auto_adjust=False,
                 )
                 duration = time.time() - start_time
                 logger.info(
@@ -112,7 +113,7 @@ class YahooProvider(MarketDataProvider):
             # Columns will become index: [Date, Ticker]
             # Metrics will become columns: Open, High, Low, Close, Volume, Adj Close
             try:
-                raw_df = raw_df.stack(level=1).reset_index()
+                raw_df = raw_df.stack(level=1, future_stack=True).reset_index()
             except Exception as e:
                 # Fallback in case stack fails due to column format changes
                 logger.warning(

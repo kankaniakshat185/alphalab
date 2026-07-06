@@ -66,7 +66,8 @@ class FactorEvaluator:
                 "signal": signal.values
             })
 
-        result_df = df.groupby("ticker", group_keys=False).apply(apply_factor)
+        # include_groups=False silences Pandas 2.2+ FutureWarnings
+        result_df = df.groupby("ticker", group_keys=False).apply(apply_factor, include_groups=False)
 
         # Drop rows where signal is NaN (e.g. from rolling windows/lags)
         result_df = result_df.dropna(subset=["signal"]).reset_index(drop=True)
