@@ -63,9 +63,7 @@ def test_run_backtest_task_success(
     mock_storage_class.return_value = mock_storage
     from datetime import date
 
-    mock_conn = MagicMock()
-    mock_storage._get_connection.return_value = mock_conn
-    mock_conn.execute.return_value.fetchone.return_value = (
+    mock_storage.get_available_date_range.return_value = (
         date(2023, 1, 1),
         date(2023, 1, 10),
     )

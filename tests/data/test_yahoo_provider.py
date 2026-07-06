@@ -1,5 +1,5 @@
 from datetime import date
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -33,7 +33,7 @@ def test_fetch_ohlcv_success(mock_download, provider):
         },
         index=pd.DatetimeIndex(["2023-01-01", "2023-01-02"], name="Date"),
     )
-    
+
     # We must match the return structure exactly.
     # We can pass mock_df directly for single ticker testing.
     mock_download.return_value = mock_df
@@ -41,7 +41,7 @@ def test_fetch_ohlcv_success(mock_download, provider):
     df = provider.fetch_ohlcv(tickers, start_date, end_date)
     assert not df.empty
     assert "ticker" in df.columns
-    assert "close" in df.columns
+    assert "Close" in df.columns
     assert df.iloc[0]["ticker"] == "AAPL"
 
 
