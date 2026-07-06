@@ -1,8 +1,8 @@
 # AlphaLab — Tasks
 
-> **Current phase:** Phase 2 — Factor DSL
+> **Current phase:** Phase 5 — Robustness Engine
 > **Status:** Planned 🔲
-> **Updated:** 2026-07-05
+> **Updated:** 2026-07-06
 
 This file tracks the granular task checklist for the current and completed phases.
 
@@ -68,12 +68,63 @@ This file tracks the granular task checklist for the current and completed phase
 
 ---
 
-## Phase 2 — Factor DSL (Planned 🔲)
+## Phase 2 — Factor DSL (Complete ✅)
 
-- [ ] Define Grammar and AST nodes (`ast.py`).
-- [ ] Implement Token Lexer (`lexer.py`).
-- [ ] Implement AST Parser (`parser.py`).
-- [ ] Implement AST Static Checker (`validator.py` - look-ahead bias, negative windows).
-- [ ] Implement Code Generator (`compiler.py` - AST to python callable).
-- [ ] Write unit tests for Lexer, Parser, Validator, and Compiler.
-- [ ] Document Phase 2 ADRs, development logs, and learning notes.
+- [x] Define Grammar and AST nodes (`ast.py`).
+- [x] Implement Token Lexer (`lexer.py`).
+- [x] Implement AST Parser (`parser.py`).
+- [x] Implement AST Static Checker (`validator.py` - look-ahead bias, negative windows).
+- [x] Implement Code Generator (`compiler.py` - AST to python callable).
+- [x] Write unit tests for Lexer, Parser, Validator, and Compiler.
+- [x] Document Phase 2 ADRs (ADR-007, ADR-008), development logs, and learning notes.
+
+---
+
+## Phase 3 — Backtesting Engine (Complete ✅)
+
+- [x] Define Vectorized Evaluator matrix execution layer (`evaluator.py`).
+- [x] Implement Rank-based and Z-score Portfolio weight allocations (`portfolio.py`).
+- [x] Implement mathematical calculators for Sharpe, Sortino, Calmar, Drawdowns, IC, and Rank IC (`metrics.py`).
+- [x] Write unit tests for portfolios, evaluators, and performance risk metrics.
+- [x] Write ADR-009 (Portfolio Signal Weightings) and Phase 3 development logs.
+
+---
+
+## Phase 4 — Background Execution (Complete ✅)
+
+- [x] Connect FastAPI router triggers to queue background Celery tasks.
+- [x] Replace task stubs with production backtest/robustness run calls.
+- [x] Implement worker task status persistence state machine (`PENDING`, `RUNNING`, `SUCCESS`, `FAILED`) in PostgreSQL.
+- [x] Add integration tests verifying task scheduling and execution tracking.
+
+---
+
+## Phase 5 — Robustness Engine (Planned 🔲)
+
+- [ ] Implement pricing noise perturbation generator (Gaussian models).
+- [ ] Implement missing-data bar drop-out simulator.
+- [ ] Implement Robustness Ratio calculator comparing perturbed performance to baseline.
+- [ ] Save stress-test outputs and detailed failure reasons to PostgreSQL.
+
+---
+
+## Phase 6 — API Expansion (Planned 🔲)
+
+- [ ] Implement Paginated global Factor Leaderboard endpoint (`GET /leaderboard`).
+- [ ] Implement metrics-based and robustness-based filtering/sorting.
+- [ ] Add endpoints for specific factor histories and experiment breakdowns.
+
+---
+
+## Phase 7 — Research Reports (Planned 🔲)
+
+- [ ] Create automated factor overview report builder compiling results and formulas.
+- [ ] Build automated markdown-to-PDF export pipeline for finalized research logs.
+
+---
+
+## Phase 8 — Next.js Frontend Dashboard (Planned 🔲)
+
+- [ ] Establish Next.js application skeleton using clean vanilla CSS variables.
+- [ ] Build charts and panels for equity curves and robustness evaluations.
+- [ ] Integrate user authentication and factor editor panels.

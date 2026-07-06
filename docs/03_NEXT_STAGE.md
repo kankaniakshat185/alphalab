@@ -1,21 +1,23 @@
 # AlphaLab — Next Stage
 
-> **Upcoming phase:** Phase 4 — Background Workers & Asynchronous Execution
-> **Depends on:** Phase 1, 2, & 3 complete ✅
+> **Upcoming phase:** Phase 5 — Robustness Engine & Noise Perturbation
+> **Depends on:** Phase 1, 2, 3, & 4 complete ✅
 > **Last updated:** 2026-07-06
 
 ---
 
 ## Objective
 
-Design and implement the Celery worker tasks that orchestrate the pipeline from DSL compilation to Factor Evaluation and database storage.
+Design and implement the **Robustness Engine** that evaluates factor stability under synthetic stress tests.
 
-The background worker must:
-*   Receive a task via Redis (e.g., `run_backtest(factor_id)`).
-*   Fetch the factor metadata from PostgreSQL.
-*   Compile the DSL string into a Pandas callable.
-*   Run the FactorEvaluator, PortfolioConstructor, and PerformanceCalculator.
-*   Write the results back to the `backtest_results` PostgreSQL table and update the job status.
+The robustness worker must:
+*   Receive a task via Redis (`run_robustness_task(factor_id)`).
+*   Perturb the cleaned pricing dataset in DuckDB using:
+    1.  **Gaussian noise** additions to Close/AdjClose prices.
+    2.  **Missing data simulation** by dropping chunks of dates/bars.
+*   Run the factor evaluation and portfolio return calculations over these perturbed datasets.
+*   Compute the **Robustness Ratio** comparing the stressed Sharpe ratio to the baseline Sharpe ratio.
+*   Write the results (`noise_score`, `missing_data_score`, `overall_score`, `failure_reasons`) back to the `robustness_results` PostgreSQL table and update the status tracker.
 
 ---
 
@@ -23,26 +25,28 @@ The background worker must:
 
 | Deliverable | Description |
 |---|---|
-| Celery Tasks | `src/alphalab/worker/tasks.py` defining the async entrypoints. |
-| DB Integrations | Connecting the SQLAlchemy DB session within the Celery worker context. |
-| Phase 4 Tests | Integration tests that mock Redis/Postgres and trigger full end-to-end task execution. |
+| Robustness Evaluator | `src/alphalab/engine/robustness.py` implementing Gaussian and missing data perturbations. |
+| Worker Updates | Connect `tasks.py` robustness job call to the actual robustness evaluator. |
+| Phase 5 Tests | Unit and integration tests validating that noise is injected and overall scores are computed accurately. |
 
 ---
 
 ## Files Expected to Change or Be Created
 
 ```
-src/alphalab/worker/
-    tasks.py           (Celery task definitions)
-    celery_app.py      (Celery configuration and routing)
+src/alphalab/engine/
+    robustness.py      (NEW: Noise perturbation and scores calculator)
 
-tests/worker/
-    test_tasks.py      (Task execution mocks)
+src/alphalab/worker/
+    tasks.py           (Update _run_robustness_async to trigger real evaluations)
+
+tests/engine/
+    test_robustness.py (NEW: Perturbation unit tests)
 
 docs/
-    02_CURRENT_STATE.md      Updated: Phase 4 complete
-    03_NEXT_STAGE.md         Rewritten: Phase 5 (Robustness)
+    02_CURRENT_STATE.md      Updated: Phase 5 complete
+    03_NEXT_STAGE.md         Rewritten: Phase 6 (API Expansion)
 
 internal/
-    development_log/Phase_04.md
+    development_log/Phase_05.md
 ```

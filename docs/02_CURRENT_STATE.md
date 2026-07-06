@@ -1,17 +1,17 @@
 # AlphaLab — Current State
 
-> **Current phase:** Phase 3 — Backtesting Engine ✅ Complete
-> **Next phase:** Phase 4 — Background Workers
+> **Current phase:** Phase 4 — Background Workers ✅ Complete
+> **Next phase:** Phase 5 — Robustness Engine
 > **Last updated:** 2026-07-06
 
 ---
 
-## Phase 3 Summary
+## Phase 4 Summary
 
-Phase 3 established the vectorized backtesting engine to evaluate compiled DSL factors over historical data:
-1.  **Evaluator (`evaluator.py`)**: Applies the compiled DSL function per-ticker across historical data safely without data leakage.
-2.  **Portfolio Constructor (`portfolio.py`)**: Converts raw alpha signals into target long/short portfolio weights via cross-sectional Z-Scoring, enforcing dollar-neutrality.
-3.  **Metrics Calculator (`metrics.py`)**: Computes core performance KPIs including annualized Sharpe Ratio, Max Drawdown, and Information Coefficient (IC).
+Phase 4 integrated background worker execution with PostgreSQL status tracking, the Factor DSL, and the backtesting simulation engine:
+1.  **Background Tasks (`tasks.py`)**: Replaced task stubs with real end-to-end factor evaluation runs. The Celery worker fetches factor definitions from PostgreSQL, retrieves start/end date ranges dynamically from DuckDB, resolves active constituents, compiles the factor, and runs the evaluation engine.
+2.  **Experiment State Machine**: Implemented error catching to update parent `Experiment` status to `FAILED` if factor parsing, validation, or backtesting fails. On successful completion of all factors, status resolves to `COMPLETED`.
+3.  **Integration Testing**: Added `test_integration_tasks.py` verifying real calculations, metrics calculation, and database state updates against temporary database instances.
 
 ---
 
@@ -20,11 +20,11 @@ Phase 3 established the vectorized backtesting engine to evaluate compiled DSL f
 ### Repository Structure
 *   `src/alphalab/data/`: Data ingestion, validation, and storage. (Phase 1)
 *   `src/alphalab/api/`: FastAPI routes, async db connections, model schemas, token authentication. (Phase 1)
-*   `src/alphalab/worker/`: Celery task definitions. (Phase 1)
+*   `src/alphalab/worker/`: Celery task definitions and real backtest execution logic. (Phase 4)
 *   `src/alphalab/dsl/`: Lexer, Parser, AST, Validator, and Pandas Compiler. (Phase 2)
 *   `src/alphalab/engine/`: Backtesting evaluator, portfolio constructor, and metrics. (Phase 3)
 *   `alembic/`: Database migration versions.
-*   `tests/`: Extensive test suite covering data, endpoints, hashing, celery, and the DSL compiler.
+*   `tests/`: Extensive test suite covering data, endpoints, hashing, celery, backtest calculations, and the DSL compiler.
 
 ### Configuration & Tooling
 *   All linter, formatting, and static typing checks pass.
@@ -35,7 +35,6 @@ Phase 3 established the vectorized backtesting engine to evaluate compiled DSL f
 
 | Component | Phase |
 |---|---|
-| Backtesting engine | 3 |
 | Celery task runner execution logic | 4 |
 | Robustness engine | 5 |
 | API Factor submission endpoints | 6 |
@@ -46,4 +45,4 @@ Phase 3 established the vectorized backtesting engine to evaluate compiled DSL f
 
 ## Next
 
-→ See [`docs/03_NEXT_STAGE.md`](03_NEXT_STAGE.md) for Phase 3 — Backtesting Engine.
+→ See [`docs/03_NEXT_STAGE.md`](03_NEXT_STAGE.md) for Phase 4 — Background Workers.
