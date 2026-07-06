@@ -44,6 +44,6 @@ class PortfolioConstructor:
                 "weight": weights
             })
 
-        weights_df = signals_df.groupby("date", group_keys=False).apply(z_score)
+        weights_df = signals_df.groupby("date", group_keys=False).apply(z_score, include_groups=False)
 
         return weights_df.reset_index(drop=True)

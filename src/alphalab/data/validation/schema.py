@@ -6,6 +6,7 @@ Implements basic structural and bounds validations on MarketDatasets.
 
 import logging
 from datetime import date
+import pandas as pd
 
 from alphalab.common.types import MarketDataset
 from alphalab.data.validation.base import Validator
@@ -33,7 +34,7 @@ class SchemaValidator(Validator):
         if df.empty:
             return report
 
-        today = date.today()
+        today = pd.Timestamp.today().normalize()
 
         # Group by ticker to run validations per ticker
         for ticker, ticker_df in df.groupby("ticker"):

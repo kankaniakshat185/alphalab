@@ -107,7 +107,7 @@ class PerformanceCalculator:
                 # Spearman rank correlation
                 return float(group["signal"].corr(group["fwd_return"], method="spearman"))
 
-            daily_ics = merged.groupby("date").apply(daily_ic)
+            daily_ics = merged.groupby("date").apply(daily_ic, include_groups=False)
             # Filter out NaNs if correlation failed
             daily_ics = daily_ics.dropna()
             metrics["ic"] = daily_ics.mean() if not daily_ics.empty else 0.0
