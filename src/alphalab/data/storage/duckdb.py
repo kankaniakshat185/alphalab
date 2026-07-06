@@ -142,6 +142,18 @@ class DuckDBStorage(Storage):
         finally:
             conn.close()
 
+    def get_available_date_range(self) -> tuple[date, date]:
+        """Get the minimum and maximum dates available in the OHLCV storage."""
+        conn = self._get_connection()
+        try:
+            res = conn.execute("SELECT MIN(date), MAX(date) FROM ohlcv").fetchone()
+            if not res or res[0] is None or res[1] is None:
+                raise ValueError("No historical prices found in storage table 'ohlcv'")
+            # The returned types are datetime.date
+            return res[0], res[1]
+        finally:
+            conn.close()
+
     def write_universe(self, entries: list[UniverseEntry]) -> None:
         """Write index constituent history entries into storage.
 

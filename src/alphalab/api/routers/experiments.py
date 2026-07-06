@@ -24,6 +24,13 @@ from alphalab.worker.tasks import run_backtest_task, run_robustness_task
 router = APIRouter(prefix="/experiments", tags=["Experiments"])
 
 
+def _get_experiment_options() -> tuple[Any, ...]:
+    """Return common SQLAlchemy eager loading options for Experiments."""
+    return (
+        selectinload(Experiment.factors).selectinload(Factor.backtest_result),
+        selectinload(Experiment.factors).selectinload(Factor.robustness_result),
+    )
+
 # --- Pydantic Schemas ---
 class FactorIn(BaseModel):
     name: str = Field(..., min_length=1)
@@ -132,10 +139,7 @@ async def create_experiment(
     # Eagerly reload relationships to build output schemas correctly
     query = (
         select(Experiment)
-        .options(
-            selectinload(Experiment.factors).selectinload(Factor.backtest_result),
-            selectinload(Experiment.factors).selectinload(Factor.robustness_result),
-        )
+        .options(*_get_experiment_options())
         .where(Experiment.id == new_exp.id)
     )
     result = await db.execute(query)
@@ -152,10 +156,7 @@ async def list_experiments(
     """Retrieve a list of all experiments submitted by the current user."""
     query = (
         select(Experiment)
-        .options(
-            selectinload(Experiment.factors).selectinload(Factor.backtest_result),
-            selectinload(Experiment.factors).selectinload(Factor.robustness_result),
-        )
+        .options(*_get_experiment_options())
         .where(Experiment.user_id == current_user.id)
         .order_by(Experiment.created_at.desc())
     )
@@ -172,10 +173,7 @@ async def get_experiment(
     """Retrieve the details and factor analysis status of a specific experiment."""
     query = (
         select(Experiment)
-        .options(
-            selectinload(Experiment.factors).selectinload(Factor.backtest_result),
-            selectinload(Experiment.factors).selectinload(Factor.robustness_result),
-        )
+        .options(*_get_experiment_options())
         .where(Experiment.id == experiment_id, Experiment.user_id == current_user.id)
     )
     result = await db.execute(query)
