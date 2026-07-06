@@ -44,6 +44,15 @@ class Storage(ABC):
         pass
 
     @abstractmethod
+    def get_available_date_range(self) -> tuple[date, date]:
+        """Get the minimum and maximum dates available in the OHLCV storage.
+
+        Returns:
+            A tuple of (start_date, end_date).
+        """
+        pass
+
+    @abstractmethod
     def write_universe(self, entries: list[UniverseEntry]) -> None:
         """Write index constituent history entries into storage.
 
