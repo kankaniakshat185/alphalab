@@ -134,3 +134,11 @@ desktop.ini
 *.p12
 *.pfx
 secrets/
+
+# -----------------------------------------------------------------------------
+# Local-only documentation
+# -----------------------------------------------------------------------------
+AlphaLab Development Roadmap.pdf
+AlphaLab_Project_Context.md.pdf
+AlphaLab_v1_Spec.pdf
+SKELETON_GUIDE.md
