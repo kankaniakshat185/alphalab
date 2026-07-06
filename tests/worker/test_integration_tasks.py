@@ -59,8 +59,8 @@ def temp_duckdb():
 
 @pytest.mark.integration
 @patch("alphalab.worker.tasks.async_session_maker")
-@patch("alphalab.worker.tasks.DuckDBStorage")
-@patch("alphalab.worker.tasks.NIFTY50Universe")
+@patch("alphalab.engine.runner.DuckDBStorage")
+@patch("alphalab.engine.runner.NIFTY50Universe")
 def test_backtest_task_integration_success(
     mock_universe_class: MagicMock,
     mock_storage_class: MagicMock,

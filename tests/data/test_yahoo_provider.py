@@ -1,9 +1,8 @@
-import json
 from datetime import date
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
-import responses
 
 from alphalab.common.exceptions import DataError
 from alphalab.data.providers.yahoo_provider import YahooProvider
@@ -14,47 +13,30 @@ def provider():
     return YahooProvider(timeout=5, max_retries=1)
 
 
-@responses.activate
-def test_fetch_ohlcv_success(provider):
-    """Test successful bulk download from Yahoo API mock."""
+@patch("alphalab.data.providers.yahoo_provider.yf.download")
+def test_fetch_ohlcv_success(mock_download, provider):
+    """Test successful bulk download from yfinance mock."""
     start_date = date(2023, 1, 1)
     end_date = date(2023, 1, 2)
     tickers = ["AAPL"]
 
-    # Mock the Yahoo Finance download JSON endpoint
-    # yfinance uses various endpoints under the hood, but primarily v8/finance/chart
-    url = "https://query2.finance.yahoo.com/v8/finance/chart/AAPL"
-    
-    mock_payload = {
-        "chart": {
-            "result": [
-                {
-                    "meta": {"symbol": "AAPL", "currency": "USD"},
-                    "timestamp": [1672756200, 1672842600],
-                    "indicators": {
-                        "quote": [
-                            {
-                                "open": [130.0, 131.0],
-                                "high": [132.0, 133.0],
-                                "low": [129.0, 130.0],
-                                "close": [131.0, 132.0],
-                                "volume": [10000, 15000],
-                            }
-                        ]
-                    },
-                }
-            ],
-            "error": None,
-        }
-    }
-
-    responses.add(
-        responses.GET,
-        url,
-        json=mock_payload,
-        status=200,
-        match_querystring=False
+    # Mock the returned DataFrame from yfinance
+    # For a single ticker, yfinance returns columns like Open, High, Low, Close, Adj Close, Volume
+    mock_df = pd.DataFrame(
+        {
+            "Open": [130.0, 131.0],
+            "High": [132.0, 133.0],
+            "Low": [129.0, 130.0],
+            "Close": [131.0, 132.0],
+            "Adj Close": [131.0, 132.0],
+            "Volume": [10000, 15000],
+        },
+        index=pd.DatetimeIndex(["2023-01-01", "2023-01-02"], name="Date"),
     )
+    
+    # We must match the return structure exactly.
+    # We can pass mock_df directly for single ticker testing.
+    mock_download.return_value = mock_df
 
     df = provider.fetch_ohlcv(tickers, start_date, end_date)
     assert not df.empty
@@ -63,22 +45,14 @@ def test_fetch_ohlcv_success(provider):
     assert df.iloc[0]["ticker"] == "AAPL"
 
 
-@responses.activate
-def test_fetch_ohlcv_server_error(provider):
-    """Test handling of HTTP 500 from Yahoo API."""
+@patch("alphalab.data.providers.yahoo_provider.yf.download")
+def test_fetch_ohlcv_server_error(mock_download, provider):
+    """Test handling of exceptions from yfinance."""
     start_date = date(2023, 1, 1)
     end_date = date(2023, 1, 2)
     tickers = ["AAPL"]
 
-    url = "https://query2.finance.yahoo.com/v8/finance/chart/AAPL"
-    responses.add(
-        responses.GET,
-        url,
-        json={"error": "Internal Server Error"},
-        status=500,
-        match_querystring=False
-    )
+    mock_download.side_effect = Exception("Internal Server Error")
 
-    # yfinance might suppress errors and just return an empty dataframe
-    df = provider.fetch_ohlcv(tickers, start_date, end_date)
-    assert df.empty
+    with pytest.raises(DataError, match="Failed to fetch market data"):
+        provider.fetch_ohlcv(tickers, start_date, end_date)

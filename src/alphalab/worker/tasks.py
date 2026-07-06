@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 from alphalab.api.database.connection import async_session_maker
 from alphalab.api.models.experiment import Experiment
 from alphalab.api.models.factor import Factor
-from alphalab.api.models.results import BacktestResult, RobustnessResult
+from alphalab.api.models.results import RobustnessResult
 from alphalab.engine.runner import ExperimentRunner
 from alphalab.worker.celery import celery_app
 

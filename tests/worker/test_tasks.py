@@ -16,12 +16,12 @@ from alphalab.worker.tasks import run_backtest_task, run_robustness_task
 
 @pytest.mark.unit
 @patch("alphalab.worker.tasks.async_session_maker")
-@patch("alphalab.worker.tasks.compile_factor")
-@patch("alphalab.worker.tasks.DuckDBStorage")
-@patch("alphalab.worker.tasks.NIFTY50Universe")
-@patch("alphalab.worker.tasks.FactorEvaluator")
-@patch("alphalab.worker.tasks.PortfolioConstructor")
-@patch("alphalab.worker.tasks.PerformanceCalculator")
+@patch("alphalab.engine.runner.compile_factor")
+@patch("alphalab.engine.runner.DuckDBStorage")
+@patch("alphalab.engine.runner.NIFTY50Universe")
+@patch("alphalab.engine.runner.FactorEvaluator")
+@patch("alphalab.engine.runner.PortfolioConstructor")
+@patch("alphalab.engine.runner.PerformanceCalculator")
 def test_run_backtest_task_success(
     mock_perf_calc: MagicMock,
     mock_portfolio: MagicMock,
