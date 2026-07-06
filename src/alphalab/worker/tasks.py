@@ -115,8 +115,8 @@ async def _run_backtest_async(factor_id: str) -> None:
 
             # Check if backtest result already exists to avoid unique constraint violations
             stmt = select(BacktestResult).where(BacktestResult.factor_id == f_uuid)
-            res = await session.execute(stmt)
-            b_res = res.scalar_one_or_none()
+            db_res = await session.execute(stmt)
+            b_res = db_res.scalar_one_or_none()
 
             if not b_res:
                 b_res = BacktestResult(
@@ -177,8 +177,8 @@ async def _run_robustness_async(factor_id: str) -> None:
 
             # Check if robustness result already exists to avoid unique constraint violations
             stmt = select(RobustnessResult).where(RobustnessResult.factor_id == f_uuid)
-            res = await session.execute(stmt)
-            r_res = res.scalar_one_or_none()
+            db_res = await session.execute(stmt)
+            r_res = db_res.scalar_one_or_none()
 
             if not r_res:
                 r_res = RobustnessResult(
