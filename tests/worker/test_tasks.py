@@ -5,6 +5,7 @@ Unit tests for Celery task handlers and database result writes using mocks.
 """
 
 import uuid
+from datetime import date
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -110,8 +111,13 @@ def test_run_backtest_task_success(
 @pytest.mark.unit
 @patch("alphalab.worker.tasks.async_session_maker")
 @patch("alphalab.worker.tasks.RobustnessEvaluator")
+@patch("alphalab.worker.tasks.DuckDBStorage")
+@patch("alphalab.worker.tasks.NIFTY50Universe")
 def test_run_robustness_task_success(
-    mock_robustness_evaluator_class: MagicMock, mock_session_maker: MagicMock
+    mock_universe_class: MagicMock,
+    mock_storage_class: MagicMock,
+    mock_robustness_evaluator_class: MagicMock,
+    mock_session_maker: MagicMock,
 ) -> None:
     """Verify that the robustness task inserts results and updates database tables."""
     mock_session = AsyncMock()
@@ -129,6 +135,15 @@ def test_run_robustness_task_success(
 
     # Mock session.get returning the mock factor
     mock_session.get.return_value = mock_factor
+
+    # Mock storage and universe
+    mock_storage = MagicMock()
+    mock_storage_class.return_value = mock_storage
+    mock_storage.get_available_date_range.return_value = (date(2023, 1, 1), date(2023, 1, 10))
+
+    mock_universe = MagicMock()
+    mock_universe_class.return_value = mock_universe
+    mock_universe.get_constituents.return_value = [MagicMock(ticker="AAPL")]
 
     # Mock RobustnessEvaluator output
     mock_evaluator = MagicMock()

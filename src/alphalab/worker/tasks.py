@@ -10,6 +10,8 @@ from alphalab.api.database.connection import async_session_maker
 from alphalab.api.models.experiment import Experiment
 from alphalab.api.models.factor import Factor
 from alphalab.api.models.results import RobustnessResult
+from alphalab.data.storage.duckdb import DuckDBStorage
+from alphalab.data.universe.nifty50 import NIFTY50Universe
 from alphalab.engine.robustness import RobustnessEvaluator
 from alphalab.engine.runner import ExperimentRunner
 from alphalab.worker.celery import celery_app
@@ -110,13 +112,19 @@ async def _run_robustness_async(factor_id: str) -> None:
                 )
                 return
 
-            # Run robustness evaluations in a background thread to avoid blocking the asyncio event loop
+            # Resolve universe tickers to test on
+            storage = DuckDBStorage()
+            start_date, end_date = storage.get_available_date_range()
+            universe = NIFTY50Universe()
+            constituents = universe.get_constituents(end_date)
+            tickers = [c.ticker for c in constituents]
+
             baseline_sharpe = (
                 factor.backtest_result.sharpe if factor.backtest_result else None
             )
-            evaluator = RobustnessEvaluator()
+            evaluator = RobustnessEvaluator(base_storage=storage)
             res = await asyncio.to_thread(
-                evaluator.run_robustness, factor.formula, baseline_sharpe
+                evaluator.run_robustness, factor.formula, tickers, start_date, end_date, baseline_sharpe
             )
 
             # Check if robustness result already exists to avoid unique constraint violations

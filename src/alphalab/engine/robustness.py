@@ -15,7 +15,7 @@ from alphalab.common.exceptions import DataError
 from alphalab.common.types import MarketDataset, UniverseEntry
 from alphalab.data.storage.base import Storage
 from alphalab.data.storage.duckdb import DuckDBStorage
-from alphalab.data.universe.nifty50 import NIFTY50Universe
+
 from alphalab.dsl import compile_factor
 from alphalab.engine.evaluator import FactorEvaluator
 from alphalab.engine.metrics import PerformanceCalculator
@@ -178,30 +178,37 @@ class RobustnessEvaluator:
         self.num_iterations = num_iterations
 
     def run_robustness(
-        self, formula: str, baseline_sharpe: float | None = None
+        self,
+        formula: str,
+        tickers: list[str],
+        start_date: date | None = None,
+        end_date: date | None = None,
+        baseline_sharpe: float | None = None,
     ) -> dict:
         """
         Run Gaussian noise and missing data stress tests on the given factor formula.
 
         Args:
             formula: DSL formula string.
+            tickers: List of stock tickers to run the test on.
+            start_date: Start date of the backtest. Defaults to storage minimum.
+            end_date: End date of the backtest. Defaults to storage maximum.
             baseline_sharpe: The baseline Sharpe ratio from the clean backtest. Optional.
 
         Returns:
             Dictionary containing noise_score, missing_data_score, overall_score, and failure_reasons.
         """
+        if not tickers:
+            raise DataError("No tickers provided for robustness evaluation.")
+
         # Compile factor formula
         factor_func = compile_factor(formula)
 
-        # Get start/end dates
-        start_date, end_date = self.base_storage.get_available_date_range()
-
-        # Resolve universe
-        universe = NIFTY50Universe()
-        constituents = universe.get_constituents(end_date)
-        tickers = [c.ticker for c in constituents]
-        if not tickers:
-            raise DataError(f"No constituents found active on date {end_date}")
+        # Get start/end dates if not provided
+        if start_date is None or end_date is None:
+            avail_start, avail_end = self.base_storage.get_available_date_range()
+            start_date = start_date or avail_start
+            end_date = end_date or avail_end
 
         # Compute baseline Sharpe if not provided
         if baseline_sharpe is None:
