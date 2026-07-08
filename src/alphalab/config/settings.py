@@ -26,7 +26,8 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str = "postgres_local_password_change_me"
     POSTGRES_DB: str = "alphalab"
     POSTGRES_HOST: str = "localhost"
-    POSTGRES_PORT: int = 5432
+    # Local Dev / UI Iteration Mode
+    MOCK_MODE: bool = False
 
     # Async Database URL
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres_local_password_change_me@localhost:5432/alphalab"

@@ -103,6 +103,32 @@ async def create_experiment(
     Returns:
         The generated Experiment record.
     """
+    if settings.MOCK_MODE:
+        # MOCK RESPONSE FOR UI ITERATION
+        new_exp = Experiment(
+            id=uuid.uuid4(),
+            user_id=current_user.id,
+            name=exp_in.name,
+            description=exp_in.description,
+            status="COMPLETED",
+            created_at=datetime.now(UTC),
+        )
+        
+        factor_records = []
+        for f in exp_in.factors:
+            factor_records.append(Factor(
+                id=uuid.uuid4(),
+                experiment_id=new_exp.id,
+                name=f.name,
+                formula=f.formula,
+                created_at=datetime.now(UTC),
+                backtest_result=None,
+                robustness_result=None
+            ))
+            
+        new_exp.factors = factor_records
+        return new_exp
+
     # 1. Create the Experiment record
     new_exp = Experiment(
         id=uuid.uuid4(),

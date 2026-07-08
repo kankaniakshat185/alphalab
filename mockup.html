@@ -1,0 +1,1763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlphaLab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Reset ─────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ─── Global ─────────────────────────────────────────── */
+    :root {
+      --bg:          #f4f5f7;
+      --dot-color:   rgba(148,155,170,0.35);
+      --sidebar-bg:  #111827;
+      --sidebar-w:   68px;
+      --card:        #ffffff;
+      --card-border: #e4e6ed;
+      --text-primary:#111827;
+      --text-muted:  #6b7280;
+      --text-xs:     #9ca3af;
+      --accent:      #4f46e5;
+      --accent-soft: #ede9fe;
+      --green:       #16a34a;
+      --green-soft:  #dcfce7;
+      --amber:       #d97706;
+      --amber-soft:  #fef3c7;
+      --red:         #dc2626;
+      --red-soft:    #fee2e2;
+      --rust:        #b45309;
+      --teal:        #0d9488;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      background-image: radial-gradient(circle, var(--dot-color) 1.2px, transparent 1.2px);
+      background-size: 22px 22px;
+      min-height: 100vh;
+      color: var(--text-primary);
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ─── Sidebar ────────────────────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-w);
+      min-height: 100vh;
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 0;
+      gap: 4px;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .sidebar-logo {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700; font-size: 13px; color: #fff;
+      margin-bottom: 20px;
+      letter-spacing: -0.5px;
+    }
+
+    .nav-item {
+      width: 52px; height: 52px;
+      border-radius: 12px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 4px;
+      cursor: pointer;
+      transition: background 0.15s;
+      color: #6b7280;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.07); color: #d1d5db; }
+    .nav-item.active { background: rgba(79,70,229,0.18); color: #818cf8; }
+    .nav-item svg { width: 20px; height: 20px; }
+    .nav-label { font-size: 9px; font-weight: 500; letter-spacing: 0.3px; }
+
+    .sidebar-spacer { flex: 1; }
+
+    /* ─── Main area ──────────────────────────────────────── */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 32px;
+    }
+
+    /* ─── Tabs (content panels) ──────────────────────────── */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ─── Page header ────────────────────────────────────── */
+    .page-title {
+      font-size: 26px; font-weight: 700; color: var(--text-primary);
+      letter-spacing: -0.5px;
+    }
+    .page-subtitle {
+      font-size: 14px; color: var(--text-muted); margin-top: 4px;
+    }
+
+    /* ─── Card ───────────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 24px;
+    }
+    .card-sm { padding: 16px 20px; }
+    .card-title {
+      font-size: 13px; font-weight: 600; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 12px;
+    }
+
+    /* ─── Badge ──────────────────────────────────────────── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; font-weight: 600;
+      padding: 3px 9px; border-radius: 20px;
+    }
+    .badge-green  { background: var(--green-soft);  color: var(--green); }
+    .badge-amber  { background: var(--amber-soft);  color: var(--amber); }
+    .badge-red    { background: var(--red-soft);    color: var(--red); }
+    .badge-accent { background: var(--accent-soft); color: var(--accent); }
+    .badge-grey   { background: #f3f4f6; color: #374151; }
+
+    /* ─── Buttons ────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px; font-weight: 600;
+      padding: 9px 18px; border-radius: 9px;
+      border: none; cursor: pointer; transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-ghost   { background: transparent; border: 1.5px solid var(--card-border); color: var(--text-primary); }
+    .btn-green   { background: var(--green); color: #fff; }
+    .btn-rust    { background: #9a3412; color: #fff; }
+    .btn-sm { font-size: 12px; padding: 6px 13px; }
+
+    /* ─── Grid helpers ───────────────────────────────────── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .flex   { display: flex; }
+    .flex-col { flex-direction: column; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .gap-2 { gap: 8px; }
+    .gap-3 { gap: 12px; }
+    .gap-4 { gap: 16px; }
+    .gap-6 { gap: 24px; }
+    .mt-1 { margin-top: 4px; }
+    .mt-2 { margin-top: 8px; }
+    .mt-3 { margin-top: 12px; }
+    .mt-4 { margin-top: 16px; }
+    .mt-6 { margin-top: 24px; }
+    .mt-8 { margin-top: 32px; }
+
+    /* ════════════════════════════════════════════════════════
+       HOME TAB
+    ════════════════════════════════════════════════════════ */
+    .hero {
+      background: rgba(255, 255, 255, 0.45);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04);
+      border-radius: 18px;
+      padding: 48px 40px;
+      color: var(--text-primary);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: radial-gradient(circle, rgba(17,24,39,0.05) 1px, transparent 1px);
+      background-size: 20px 20px;
+      pointer-events: none;
+    }
+    .hero-content { position: relative; z-index: 1; }
+    .hero-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(228, 230, 237, 0.8);
+      border-radius: 20px; padding: 4px 12px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.8px;
+      color: var(--accent); text-transform: uppercase; margin-bottom: 20px;
+    }
+    .hero h1 { font-size: 36px; font-weight: 700; letter-spacing: -1px; line-height: 1.15; color: var(--text-primary); }
+    .hero p  { font-size: 15px; color: var(--text-muted); margin-top: 12px; max-width: 560px; line-height: 1.65; }
+    .hero-actions { display: flex; gap: 12px; margin-top: 28px; }
+    .hero-btn-primary {
+      background: var(--accent); color: #fff; padding: 10px 22px;
+      border-radius: 10px; font-size: 14px; font-weight: 600;
+      border: none; cursor: pointer;
+    }
+    .hero-btn-ghost {
+      background: rgba(255, 255, 255, 0.6);
+      color: var(--text-primary);
+      border: 1px solid var(--card-border);
+      padding: 10px 22px; border-radius: 10px; font-size: 14px; font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .hero-btn-ghost:hover {
+      background: rgba(255, 255, 255, 0.9);
+    }
+    .hero-stat-row { display: flex; gap: 32px; margin-top: 36px; }
+    .hero-stat-val { font-size: 28px; font-weight: 700; color: var(--text-primary); }
+    .hero-stat-lbl { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    .concept-card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 22px;
+    }
+    .concept-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; margin-bottom: 14px;
+    }
+    .concept-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+    .concept-card p  { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+    /* ════════════════════════════════════════════════════════
+       FLOW TAB
+    ════════════════════════════════════════════════════════ */
+    .flow-layout {
+      display: flex;
+      gap: 24px;
+      margin-top: 16px;
+    }
+    .flow-sidebar {
+      width: 250px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .flow-sidebar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .flow-sidebar-header h3 {
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .flow-search-box {
+      background: #e4e6ed;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      width: 100%;
+      outline: none;
+      color: var(--text-primary);
+    }
+    .flow-search-box::placeholder {
+      color: var(--text-muted);
+    }
+    .flow-filter-btn {
+      background: #fff;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-primary);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .flow-card-item {
+      background: #fff;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .flow-card-item:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+      border-color: var(--accent);
+    }
+    .flow-card-item.active {
+      border-color: var(--accent);
+      background: #fff;
+      box-shadow: 0 4px 12px rgba(79,70,229,0.06);
+      position: relative;
+    }
+    .flow-card-item.active::after {
+      content: '';
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--red);
+    }
+    .flow-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .flow-card-project {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-top: 3px;
+    }
+    .flow-card-meta {
+      display: flex;
+      gap: 12px;
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 10px;
+    }
+
+    .flow-main-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .ref-canvas-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1.5px solid var(--card-border);
+      padding-bottom: 14px;
+      margin-bottom: 14px;
+    }
+    .ref-canvas-header h2 {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .ref-avatar-group {
+      display: flex;
+      align-items: center;
+    }
+    .ref-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      margin-left: -8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 700;
+      color: #fff;
+      overflow: hidden;
+    }
+    .ref-avatar:first-child {
+      margin-left: 0;
+    }
+    .ref-avatar-plus {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid var(--card-border);
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: var(--text-muted);
+      cursor: pointer;
+      margin-left: 6px;
+    }
+
+    .flow-canvas {
+      background: #fafafc;
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 32px;
+      height: 580px;
+      position: relative;
+      background-image: radial-gradient(circle, #e4e6ed 1.2px, transparent 1.2px);
+      background-size: 20px 20px;
+      overflow: hidden;
+    }
+
+    /* Floating vertical toolbar on the left of canvas */
+    .ref-canvas-toolbar {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #111827;
+      border-radius: 20px;
+      padding: 8px 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+      z-index: 10;
+    }
+    .ref-toolbar-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #9ca3af;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .ref-toolbar-btn:hover {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+    .ref-toolbar-btn.active {
+      color: #fff;
+      background: rgba(255,255,255,0.15);
+    }
+    .ref-toolbar-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Ref-styled flow nodes (cards) */
+    .ref-node {
+      position: absolute;
+      background: #fff;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      width: 220px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      cursor: pointer;
+      transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+      z-index: 5;
+    }
+    .ref-node:hover {
+      box-shadow: 0 8px 24px rgba(79,70,229,0.12);
+      transform: translateY(-2px);
+      border-color: var(--accent);
+    }
+    .ref-node-tags {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 6px;
+    }
+    .ref-node-tag {
+      background: #111827;
+      color: #fff;
+      font-size: 8px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 3px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .ref-node-title {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.4;
+      margin-bottom: 10px;
+    }
+    .ref-node-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 9.5px;
+      color: var(--text-muted);
+      border-top: 1px solid #f3f4f6;
+      padding-top: 8px;
+    }
+    .ref-node-meta span {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .ref-node-handle {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      display: grid;
+      grid-template-columns: repeat(2, 2px);
+      gap: 2px;
+    }
+    .ref-node-handle div {
+      width: 2px;
+      height: 2px;
+      background: #9ca3af;
+      border-radius: 50%;
+    }
+    .ref-node-port {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid #9ca3af;
+      position: absolute;
+      z-index: 2;
+    }
+    .ref-node-port.port-left {
+      left: -4px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    .ref-node-port.port-right {
+      right: -4px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    .ref-node-port.port-bottom {
+      bottom: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .ref-node-port.port-top {
+      top: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    /* SVG connector lines */
+    .flow-svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    /* Zoom controls (+/-) */
+    .ref-zoom-controls {
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      background: #111827;
+      border-radius: 8px;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+      z-index: 10;
+    }
+    .ref-zoom-btn {
+      width: 24px;
+      height: 24px;
+      color: #9ca3af;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .ref-zoom-btn:hover {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+
+    /* Flow legend */
+    .flow-legend {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+    .flow-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .flow-legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    /* Detail modal overlay */
+    .node-detail {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 100;
+      align-items: center; justify-content: center;
+    }
+    .node-detail.open { display: flex; }
+    .node-detail-card {
+      background: #fff;
+      border-radius: 18px;
+      padding: 32px;
+      max-width: 540px; width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+      position: relative;
+    }
+    .node-detail-close {
+      position: absolute; top: 16px; right: 16px;
+      width: 28px; height: 28px; border-radius: 50%;
+      background: #f3f4f6; border: none; cursor: pointer;
+      font-size: 14px; display: flex; align-items: center; justify-content: center;
+    }
+    .node-detail h2 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .node-detail p  { font-size: 13px; color: var(--text-muted); line-height: 1.65; }
+    .node-detail .detail-sub {
+      font-size: 12px; font-weight: 600; color: var(--text-xs);
+      text-transform: uppercase; letter-spacing: 0.6px;
+      margin: 16px 0 8px;
+    }
+    .node-detail ul  { list-style: none; }
+    .node-detail ul li {
+      font-size: 13px; color: var(--text-muted);
+      padding: 5px 0; border-bottom: 1px solid #f3f4f6;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .node-detail ul li::before { content: "→"; color: var(--accent); font-weight: 700; }
+
+    /* Sub-diagram inside detail */
+    .sub-diagram {
+      background: #f9fafb;
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-top: 12px;
+      display: flex; align-items: center; gap: 8px;
+      flex-wrap: wrap;
+    }
+    .sub-box {
+      background: #fff;
+      border: 1.5px solid var(--card-border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 11px; font-weight: 600;
+    }
+    .sub-arrow { color: var(--text-muted); font-size: 16px; }
+
+    /* ════════════════════════════════════════════════════════
+       LAB TAB
+    ════════════════════════════════════════════════════════ */
+    .lab-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .lab-header-right { display: flex; align-items: center; gap: 10px; }
+
+    /* Factor sidebar */
+    .lab-layout { display: flex; gap: 20px; }
+    .factor-sidebar {
+      width: 200px; flex-shrink: 0;
+    }
+    .factor-btn {
+      width: 100%;
+      background: #fff; border: 1.5px solid var(--card-border);
+      border-radius: 10px; padding: 11px 14px;
+      font-size: 13px; font-weight: 500; color: var(--text-primary);
+      cursor: pointer; text-align: left;
+      margin-bottom: 8px; transition: border-color 0.15s;
+    }
+    .factor-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .factor-btn.active {
+      background: var(--green); border-color: var(--green);
+      color: #fff; font-weight: 600;
+    }
+    .lab-main { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+
+    /* Chart */
+    .chart-container {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 20px;
+    }
+    .chart-label { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+    .chart-svg-area {
+      width: 100%; height: 160px;
+      background: #f9fafb;
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Candlestick chart */
+    .candle-chart {
+      width: 100%; height: 200px;
+      background: #f9fafb; border-radius: 10px;
+      position: relative; overflow: hidden;
+      display: flex; align-items: flex-end;
+      gap: 3px; padding: 12px 12px 24px;
+    }
+    .candle-wrap {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-end;
+      position: relative;
+    }
+    .candle-body {
+      width: 70%; border-radius: 2px;
+    }
+    .candle-wick {
+      width: 1.5px; background: #9ca3af;
+      position: absolute;
+    }
+
+    /* Metric tiles */
+    .metric-tile {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 16px 18px;
+    }
+    .metric-tile-label { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+    .metric-tile-val   { font-size: 22px; font-weight: 700; margin-top: 4px; }
+    .metric-tile-delta { font-size: 11px; margin-top: 3px; }
+    .delta-pos { color: var(--green); }
+    .delta-neg { color: var(--red); }
+
+    /* Stress config */
+    .stress-config {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 24px;
+    }
+    .stress-config h3 { font-size: 15px; font-weight: 700; margin-bottom: 20px; }
+    .scenario-label { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; font-weight: 500; }
+    .scenario-btns  { display: flex; gap: 8px; }
+    .scenario-btn {
+      padding: 9px 16px; border-radius: 9px; font-size: 13px; font-weight: 600;
+      border: 1.5px solid var(--card-border); background: #fff;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .scenario-btn.active { background: #9a3412; color: #fff; border-color: #9a3412; }
+    .scenario-btn:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+
+    .slider-row { margin-top: 18px; }
+    .slider-label { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; display: flex; justify-content: space-between; }
+    .range-slider {
+      -webkit-appearance: none; width: 100%; height: 4px;
+      background: linear-gradient(to right, #9a3412 60%, #e5e7eb 60%);
+      border-radius: 4px; outline: none;
+    }
+    .range-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #9a3412; cursor: pointer;
+      border: 2px solid #fff;
+      box-shadow: 0 0 0 3px rgba(154,52,18,0.2);
+    }
+
+    .stress-meta { display: flex; gap: 12px; margin-top: 18px; }
+    .stress-meta-box {
+      flex: 1; background: #f9fafb;
+      border: 1px solid var(--card-border);
+      border-radius: 10px; padding: 14px;
+    }
+    .stress-meta-box label { font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 8px; }
+    .date-input {
+      background: #fff; border: 1px solid var(--card-border);
+      border-radius: 7px; padding: 6px 10px;
+      font-size: 12px; font-family: 'JetBrains Mono', monospace;
+      color: var(--text-primary); width: 120px;
+    }
+
+    /* Results comparison */
+    .result-cards { display: flex; gap: 16px; }
+    .result-card {
+      flex: 1; border-radius: 14px; padding: 20px;
+      position: relative; overflow: hidden;
+    }
+    .result-card.positive { background: var(--green); }
+    .result-card.negative { background: #9a3412; }
+    .result-card h3 { font-size: 16px; font-weight: 700; color: #fff; }
+    .result-card p  { font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 4px; }
+
+    /* Comparison table */
+    .comp-table {
+      width: 100%; border-collapse: collapse;
+      font-size: 13px;
+    }
+    .comp-table th {
+      text-align: left; padding: 10px 14px;
+      font-size: 11px; font-weight: 600;
+      color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .comp-table td {
+      padding: 11px 14px; border-bottom: 1px solid #f3f4f6;
+      color: var(--text-primary);
+    }
+    .comp-table tr:last-child td { border-bottom: none; }
+    .comp-table .positive-val { color: var(--green); font-weight: 600; }
+    .comp-table .negative-val { color: var(--red); font-weight: 600; }
+
+    /* ════════════════════════════════════════════════════════
+       HISTORY TAB
+    ════════════════════════════════════════════════════════ */
+    .history-row {
+      display: flex; align-items: center; gap: 16px;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 12px; padding: 16px 20px;
+      margin-bottom: 10px;
+      transition: box-shadow 0.15s;
+      cursor: pointer;
+    }
+    .history-row:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.07); }
+    .history-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px; flex-shrink: 0;
+    }
+    .history-name   { font-size: 14px; font-weight: 600; }
+    .history-formula {
+      font-size: 12px; font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted); margin-top: 2px;
+    }
+    .history-metrics { display: flex; gap: 20px; margin-left: auto; }
+    .history-metric-val { font-size: 14px; font-weight: 700; }
+    .history-metric-lbl { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+
+    /* Mini sparkline */
+    .sparkline { width: 80px; height: 30px; }
+
+    /* ─── Scrollbar ──────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+
+    /* ─── Ticker tape ────────────────────────────────────── */
+    .ticker-tape {
+      background: var(--sidebar-bg);
+      color: #d1d5db;
+      padding: 7px 0;
+      font-size: 11.5px;
+      font-family: 'JetBrains Mono', monospace;
+      overflow: hidden; white-space: nowrap;
+      border-bottom: 1px solid #1f2937;
+    }
+    .ticker-inner { display: inline-block; animation: ticker 30s linear infinite; }
+    .ticker-item  { display: inline; margin-right: 40px; }
+    .ticker-pos   { color: #4ade80; }
+    .ticker-neg   { color: #f87171; }
+    @keyframes ticker { 0%{ transform: translateX(0); } 100%{ transform: translateX(-50%); } }
+  </style>
+</head>
+<body>
+
+<!-- ═══ SIDEBAR ═══════════════════════════════════════════ -->
+<nav class="sidebar">
+  <div class="sidebar-logo">αL</div>
+
+  <div class="nav-item active" id="nav-home" onclick="switchTab('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/>
+      <path d="M9 21V12h6v9"/>
+    </svg>
+    <span class="nav-label">Home</span>
+  </div>
+
+  <div class="nav-item" id="nav-flow" onclick="switchTab('flow')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="5" cy="12" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="19" cy="19" r="2"/>
+      <path d="M7 12h4m4-5H9.5A2.5 2.5 0 007 9.5v0m8.5 7H9.5A2.5 2.5 0 017 14.5v0"/>
+    </svg>
+    <span class="nav-label">Flow</span>
+  </div>
+
+  <div class="nav-item" id="nav-lab" onclick="switchTab('lab')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
+    </svg>
+    <span class="nav-label">Lab</span>
+  </div>
+
+  <div class="nav-item" id="nav-history" onclick="switchTab('history')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M12 7v5l3 3"/>
+    </svg>
+    <span class="nav-label">History</span>
+  </div>
+
+  <div class="sidebar-spacer"></div>
+
+  <div class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="12" cy="8" r="4"/>
+      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+    </svg>
+  </div>
+</nav>
+
+<!-- ═══ MAIN ═══════════════════════════════════════════════ -->
+<div style="flex:1; display:flex; flex-direction:column; height: 100vh; overflow:hidden;">
+
+  <!-- Ticker tape -->
+  <div class="ticker-tape">
+    <div class="ticker-inner">
+      <span class="ticker-item">RELIANCE &nbsp;<span class="ticker-pos">▲ +1.42%</span>&nbsp; ₹2,941</span>
+      <span class="ticker-item">TCS &nbsp;<span class="ticker-neg">▼ −0.31%</span>&nbsp; ₹4,218</span>
+      <span class="ticker-item">HDFC BANK &nbsp;<span class="ticker-pos">▲ +0.87%</span>&nbsp; ₹1,769</span>
+      <span class="ticker-item">INFY &nbsp;<span class="ticker-neg">▼ −0.54%</span>&nbsp; ₹1,892</span>
+      <span class="ticker-item">WIPRO &nbsp;<span class="ticker-pos">▲ +1.10%</span>&nbsp; ₹583</span>
+      <span class="ticker-item">ICICI BANK &nbsp;<span class="ticker-pos">▲ +0.63%</span>&nbsp; ₹1,312</span>
+      <span class="ticker-item">SBIN &nbsp;<span class="ticker-neg">▼ −0.22%</span>&nbsp; ₹826</span>
+      <span class="ticker-item">BHARTIARTL &nbsp;<span class="ticker-pos">▲ +2.01%</span>&nbsp; ₹1,688</span>
+      <!-- duplicate for seamless loop -->
+      <span class="ticker-item">RELIANCE &nbsp;<span class="ticker-pos">▲ +1.42%</span>&nbsp; ₹2,941</span>
+      <span class="ticker-item">TCS &nbsp;<span class="ticker-neg">▼ −0.31%</span>&nbsp; ₹4,218</span>
+      <span class="ticker-item">HDFC BANK &nbsp;<span class="ticker-pos">▲ +0.87%</span>&nbsp; ₹1,769</span>
+      <span class="ticker-item">INFY &nbsp;<span class="ticker-neg">▼ −0.54%</span>&nbsp; ₹1,892</span>
+      <span class="ticker-item">WIPRO &nbsp;<span class="ticker-pos">▲ +1.10%</span>&nbsp; ₹583</span>
+      <span class="ticker-item">ICICI BANK &nbsp;<span class="ticker-pos">▲ +0.63%</span>&nbsp; ₹1,312</span>
+      <span class="ticker-item">SBIN &nbsp;<span class="ticker-neg">▼ −0.22%</span>&nbsp; ₹826</span>
+      <span class="ticker-item">BHARTIARTL &nbsp;<span class="ticker-pos">▲ +2.01%</span>&nbsp; ₹1,688</span>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- ══════════════ HOME ══════════════ -->
+    <div class="tab-panel active" id="panel-home">
+
+      <div class="hero">
+        <div class="hero-content">
+          <div class="hero-tag">⚗️ &nbsp;NIFTY 50 · Factor Research Platform</div>
+          <h1>Does your alpha factor<br/>actually survive the real world?</h1>
+          <p>AlphaLab stress-tests NIFTY 50 equity factors against pricing noise and missing data to distinguish genuine market signals from overfit artefacts — before they cost you real money.</p>
+          <div class="hero-actions">
+            <button class="hero-btn-primary" onclick="switchTab('lab')">Open Lab →</button>
+            <button class="hero-btn-ghost" onclick="switchTab('flow')">See how it works</button>
+          </div>
+          <div class="hero-stat-row">
+            <div>
+              <div class="hero-stat-val">50</div>
+              <div class="hero-stat-lbl">NIFTY 50 constituents</div>
+            </div>
+            <div>
+              <div class="hero-stat-val">6</div>
+              <div class="hero-stat-lbl">Stress test scenarios</div>
+            </div>
+            <div>
+              <div class="hero-stat-val">0.0–1.0</div>
+              <div class="hero-stat-lbl">Robustness score</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Concepts -->
+      <div class="mt-8">
+        <div class="page-title" style="font-size:20px;">The economic ideas behind AlphaLab</div>
+        <div class="page-subtitle">No PhD required — here's what the jargon actually means.</div>
+      </div>
+
+      <div class="grid-3 mt-4">
+        <div class="concept-card">
+          <div class="concept-icon" style="background:#ede9fe;">📈</div>
+          <h3>What is an alpha factor?</h3>
+          <p>A mathematical signal — like momentum or volatility — that attempts to predict which stocks will outperform. If Momentum(20) is high for a stock, we bet it continues rising. The question is: is that signal real, or lucky noise?</p>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon" style="background:#dcfce7;">⚖️</div>
+          <h3>Sharpe Ratio</h3>
+          <p>Return per unit of risk. A Sharpe of <strong>1.0+</strong> is solid, <strong>2.0+</strong> is exceptional. But a high Sharpe on historical data alone proves nothing — it might just be overfitting to that specific period.</p>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon" style="background:#fef3c7;">🎯</div>
+          <h3>Information Coefficient (IC)</h3>
+          <p>Correlation between the factor's predicted ranking and the actual return ranking. An IC of <strong>0.05</strong> is considered good in practice — markets are hard to predict at any IC above 0 consistently.</p>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon" style="background:#fee2e2;">📉</div>
+          <h3>Max Drawdown</h3>
+          <p>The worst peak-to-trough loss the factor-based portfolio suffered. A drawdown of <strong>-20%</strong> means investors lost ₹20 for every ₹100 at peak before recovery began. Lower is always better.</p>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon" style="background:#e0f2fe;">🔀</div>
+          <h3>Robustness Score</h3>
+          <p>AlphaLab's core output. We inject artificial noise (± 2% price perturbation) and drop data (up to 20% of bars). If the factor's Sharpe survives, it's robust. Score <strong>≥ 0.8</strong> = production ready.</p>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon" style="background:#fce7f3;">📊</div>
+          <h3>Look-ahead Bias</h3>
+          <p>Using future data to evaluate a past signal — a subtle but fatal mistake. AlphaLab enforces <strong>point-in-time</strong> NIFTY 50 universe construction so factors only see data that existed on that date.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ FLOW ══════════════ -->
+    <div class="tab-panel" id="panel-flow">
+      <div class="flow-layout">
+        <!-- Flows List (Left sidebar) -->
+        <div class="flow-sidebar">
+          <div class="flow-sidebar-header">
+            <h3>Flows <span class="badge badge-accent" style="padding:2px 8px;font-size:10px;">3</span></h3>
+            <button class="btn btn-primary btn-sm" style="padding:4px 10px;font-size:11px;border-radius:6px;background:#000;">Add new</button>
+          </div>
+          <input type="text" class="flow-search-box" placeholder="🔍 Search flows..." />
+          <div class="flex gap-2">
+            <button class="flow-filter-btn">⇅ Recent</button>
+            <button class="flow-filter-btn">⚙️ Filters <span style="background:var(--accent-soft);color:var(--accent);padding:1px 5px;border-radius:10px;font-size:9px;">2</span></button>
+          </div>
+
+          <div class="flow-card-item active">
+            <div class="flow-card-title">Backtest & Robustness</div>
+            <div class="flow-card-project">Project AlphaLab</div>
+            <div class="flow-card-meta">
+              <span>👥 3 teams</span>
+              <span>🔗 8 nodes</span>
+              <span>💬 21</span>
+            </div>
+          </div>
+
+          <div class="flow-card-item">
+            <div class="flow-card-title">Data Ingestion Flow</div>
+            <div class="flow-card-project">Project AlphaLab</div>
+            <div class="flow-card-meta">
+              <span>👥 2 teams</span>
+              <span>🔗 4 nodes</span>
+              <span>💬 8</span>
+            </div>
+          </div>
+
+          <div class="flow-card-item">
+            <div class="flow-card-title">Report Generator</div>
+            <div class="flow-card-project">Project AlphaLab</div>
+            <div class="flow-card-meta">
+              <span>👥 1 team</span>
+              <span>🔗 3 nodes</span>
+              <span>💬 5</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Canvas Area (Right main panel) -->
+        <div class="flow-main-area">
+          <div class="ref-canvas-header">
+            <div>
+              <h2>Backtest & Robustness Pipeline</h2>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Last modified: @prashant, 2min ago</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <button class="btn btn-ghost btn-sm" style="padding:6px 12px;font-size:12px;border-radius:6px;">Discuss</button>
+              <button class="btn btn-primary btn-sm" style="padding:6px 12px;font-size:12px;border-radius:6px;background:#000;">Share</button>
+            </div>
+          </div>
+
+          <!-- The canvas itself -->
+          <div class="flow-canvas">
+            <!-- Left floating vertical toolbar -->
+            <div class="ref-canvas-toolbar">
+              <div class="ref-toolbar-btn active">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="M13 13l6 6"/></svg>
+              </div>
+              <div class="ref-toolbar-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/></svg>
+              </div>
+              <div class="ref-toolbar-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M9 3v18"/></svg>
+              </div>
+              <div class="ref-toolbar-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <div class="ref-toolbar-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+              </div>
+            </div>
+
+            <!-- SVG paths connecting the components -->
+            <svg class="flow-svg" viewBox="0 0 850 500" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#9ca3af" />
+                </marker>
+                <marker id="arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#22c55e" />
+                </marker>
+                <marker id="arrow-amber" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#b45309" />
+                </marker>
+              </defs>
+              
+              <!-- 1. Next.js Frontend -> FastAPI Router (REST Request) -->
+              <path d="M 340 89 V 109" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green)"/>
+              <text x="345" y="103" font-size="9" fill="#16a34a" text-anchor="start" font-family="'Inter', sans-serif" font-weight="600">1. REST Request</text>
+              
+              <!-- 2. FastAPI Router -> Factor DSL Compiler (Verify Syntax) -->
+              <path d="M 240 152 Q 120 152 120 189" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="4,4" marker-end="url(#arrow)"/>
+              <text x="170" y="145" font-size="9" fill="#6b7280" text-anchor="middle" font-family="'Inter', sans-serif" font-weight="600">2. Verify Syntax</text>
+
+              <!-- 3. FastAPI Router -> PostgreSQL Metadata DB (Store Job Metadata) -->
+              <path d="M 340 189 Q 310 252 336 309" fill="none" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+              <text x="315" y="252" font-size="9" fill="#6b7280" text-anchor="end" font-family="'Inter', sans-serif" font-weight="600">3. Store Job Metadata</text>
+
+              <!-- 4. FastAPI Router -> Celery Worker (Dispatch Job) -->
+              <path d="M 440 152 Q 580 152 580 189" fill="none" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+              <text x="515" y="145" font-size="9" fill="#6b7280" text-anchor="middle" font-family="'Inter', sans-serif" font-weight="600">4. Dispatch Job</text>
+
+              <!-- 5. Celery Worker -> DuckDB Analytic DB (Load Price Data) -->
+              <path d="M 580 269 V 309" fill="none" stroke="#b45309" stroke-width="2" marker-end="url(#arrow-amber)"/>
+              <text x="588" y="293" font-size="9" fill="#b45309" text-anchor="start" font-family="'Inter', sans-serif" font-weight="600">5. Load Price Data</text>
+
+              <!-- 6. Celery Worker -> Backtest/Robustness Engine (Execute Stress Loops) -->
+              <path d="M 680 232 Q 800 232 800 309" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="4,4" marker-end="url(#arrow)"/>
+              <text x="745" y="225" font-size="9" fill="#6b7280" text-anchor="middle" font-family="'Inter', sans-serif" font-weight="600">6. Execute Stress Loops</text>
+
+              <!-- 7. Backtest/Robustness Engine -> Data Ingestion Layer (Load Constituent Data) -->
+              <path d="M 800 389 V 409" fill="none" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green)"/>
+              <text x="808" y="403" font-size="9" fill="#16a34a" text-anchor="start" font-family="'Inter', sans-serif" font-weight="600">7. Load Constituent Data</text>
+
+              <!-- 8. Celery Worker -> PostgreSQL Metadata DB (Persist Sharpe/Score) -->
+              <path d="M 480 232 Q 440 280 440 309" fill="none" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+              <text x="435" y="275" font-size="9" fill="#6b7280" text-anchor="end" font-family="'Inter', sans-serif" font-weight="600">8. Persist Sharpe/Score</text>
+            </svg>
+
+            <!-- Cards / Nodes (without Phases!) -->
+            
+            <!-- 1. Next.js Frontend (Client) -->
+            <div class="ref-node" style="top:15px;left:240px;" onclick="openDetail('client')">
+              <div class="ref-node-handle"><div></div><div></div><div></div><div></div></div>
+              <div class="ref-node-tags"><span class="ref-node-tag" style="background:#3b82f6;">Client</span></div>
+              <div class="ref-node-title">Next.js Frontend</div>
+              <div class="ref-node-meta">
+                <span>📋 4 screens</span>
+                <span>💬 14</span>
+              </div>
+              <div class="ref-node-port port-bottom"></div>
+            </div>
+
+            <!-- 2. FastAPI REST API (API) -->
+            <div class="ref-node" style="top:115px;left:240px;" onclick="openDetail('api')">
+              <div class="ref-node-handle"><div></div><div></div><div></div><div></div></div>
+              <div class="ref-node-tags"><span class="ref-node-tag" style="background:#4f46e5;">FastAPI</span><span class="ref-node-tag" style="background:#111827;">Router</span></div>
+              <div class="ref-node-title">FastAPI Router</div>
+              <div class="ref-node-meta">
+                <span>📋 8 routes</span>
+                <span>💬 21</span>
+              </div>
+              <div class="ref-node-port port-top"></div>
+              <div class="ref-node-port port-left"></div>
+              <div class="ref-node-port port-right"></div>
+              <div class="ref-node-port port-bottom"></div>
+            </div>
+
+            <!-- 3. Factor Compiler (DSL) -->
+            <div class="ref-node" style="top:195px;left:20px;" onclick="openDetail('dsl')">
+              <div class="ref-node-handle"><div></div><div></div><div></div><div></div></div>
+              <div class="ref-node-tags"><span class="ref-node-tag" style="background:#dc2626;">DSL</span><span class="ref-node-tag" style="background:#111827;">Parser</span></div>
+              <div class="ref-node-title">Factor DSL Compiler</div>
+              <div class="ref-node-meta">
+                <span>📋 5 modules</span>
+                <span>💬 12</span>
+              </div>
+              <div class="ref-node-port port-top"></div>
+            </div>
+
+            <!-- 4. Celery Worker (Worker) -->
+            <div class="ref-node" style="top:195px;left:480px;" onclick="openDetail('worker')">
+              <div class="ref-node-handle"><div></div><div></div><div></div><div></div></div>
+              <div class="ref-node-tags"><span class="ref-node-tag" style="background:#16a34a;">Celery</span><span class="ref-node-tag" style="background:#ea580c;">Queue</span></div>
+              <div class="ref-node-title">Celery Worker</div>
+              <div class="ref-node-meta">
+                <span>📋 2 tasks</span>
+                <span>💬 5</span>
+              </div>
+              <div class="ref-node-port port-top"></div>
+              <div class="ref-node-port port-left"></div>
+              <div class="ref-node-port port-right"></div>
+              <div class="ref-node-port port-bottom"></div>
+            </div>
+
+            <!-- 5. PostgreSQL Metadata DB -->
+            <div class="ref-node" style="top:315px;left:240px;" onclick="openDetail('postgres')">
+              <div class="ref-node-handle"><div></div><div></div><div></div><div></div></div>
+              <div class="ref-node-tags"><span class="ref-node-tag" style="background:#2563eb;">Postgres</span></div>
+              <div class="ref-node-title">PostgreSQL Metadata DB</div>
+              <div class="ref-node-meta">
+                <span>📋 5 tables</span>
+                <span>💬 3</span>
+              </div>
+              <div class="ref-node-port port-top"></div>
+              <div class="ref-node-port port-right"></div>
+            </div>
+
+            <!-- 6. DuckDB Analytical DB -->
+            <div class="ref-node" style="top:315px;left:480px;" onclick="openDetail('duckdb')">
+              <div class="ref-node-handle"><div></div><div></div><div></div><div></div></div>
+              <div class="ref-node-tags"><span class="ref-node-tag" style="background:#b45309;">DuckDB</span></div>
+              <div class="ref-node-title">DuckDB Analytic DB</div>
+              <div class="ref-node-meta">
+                <span>📋 3 tables</span>
+                <span>💬 9</span>
+              </div>
+              <div class="ref-node-port port-top"></div>
+            </div>
+
+            <!-- 7. Backtest & Robustness Engine -->
+            <div class="ref-node" style="top:315px;left:700px;" onclick="openDetail('engine')">
+              <div class="ref-node-handle"><div></div><div></div><div></div><div></div></div>
+              <div class="ref-node-tags"><span class="ref-node-tag" style="background:#0d9488;">Engine</span></div>
+              <div class="ref-node-title">Backtest/Robustness Engine</div>
+              <div class="ref-node-meta">
+                <span>📋 4 modules</span>
+                <span>💬 16</span>
+              </div>
+              <div class="ref-node-port port-top"></div>
+              <div class="ref-node-port port-bottom"></div>
+            </div>
+
+            <!-- 8. Data Ingestion Layer -->
+            <div class="ref-node" style="top:415px;left:700px;" onclick="openDetail('data')">
+              <div class="ref-node-handle"><div></div><div></div><div></div><div></div></div>
+              <div class="ref-node-tags"><span class="ref-node-tag" style="background:#d97706;">Data</span><span class="ref-node-tag" style="background:#111827;">Ingestion</span></div>
+              <div class="ref-node-title">Data Ingestion Layer</div>
+              <div class="ref-node-meta">
+                <span>📋 3 sub-modules</span>
+                <span>💬 14</span>
+              </div>
+              <div class="ref-node-port port-top"></div>
+            </div>
+
+            <!-- Floating Zoom Controls -->
+            <div class="ref-zoom-controls">
+              <div class="ref-zoom-btn">+</div>
+              <div class="ref-zoom-btn">−</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Legend -->
+      <div class="flow-legend mt-3">
+        <div class="flow-legend-item"><div class="flow-legend-dot" style="background:#22c55e;"></div>Primary processing flow</div>
+        <div class="flow-legend-item"><div class="flow-legend-dot" style="background:#b45309;"></div>Market DB Queries</div>
+        <div class="flow-legend-item"><div class="flow-legend-dot" style="background:#9ca3af;"></div>System metadata update / compile path</div>
+      </div>
+    </div>
+
+    <!-- ══════════════ LAB ══════════════ -->
+    <div class="tab-panel" id="panel-lab">
+
+      <div class="lab-header">
+        <div>
+          <div class="page-title">Factor Lab</div>
+          <div class="page-subtitle">NIFTY 50 · Walk-forward Evaluation · 2020–2024</div>
+        </div>
+        <div class="lab-header-right">
+          <span class="badge badge-green">● Live</span>
+          <button class="btn btn-ghost btn-sm">Export</button>
+          <button class="btn btn-primary btn-sm">+ New Factor</button>
+        </div>
+      </div>
+
+      <!-- Factor DSL row -->
+      <div class="card card-sm mb-4 flex items-center gap-3 mt-0" style="margin-bottom:16px;">
+        <span style="font-size:11px;font-weight:600;color:var(--text-muted);">FORMULA</span>
+        <code style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:var(--accent);flex:1;">Momentum(20)</code>
+        <span class="badge badge-green">✓ Valid · No look-ahead bias</span>
+        <button class="btn btn-ghost btn-sm">Change formula</button>
+      </div>
+
+      <!-- Main lab layout: factor list + chart + metrics -->
+      <div class="lab-layout">
+        <!-- Factor sidebar -->
+        <div class="factor-sidebar">
+          <div class="card-title" style="margin-bottom:12px;">Factors</div>
+          <button class="factor-btn active">Momentum</button>
+          <button class="factor-btn">Value</button>
+          <button class="factor-btn">Low Volatility</button>
+          <button class="factor-btn">Quality</button>
+
+          <div style="margin-top:20px;">
+            <div class="card-title">Universe</div>
+            <div style="font-size:12px;color:var(--text-muted);line-height:1.6;">
+              NIFTY 50<br/>50 tickers<br/>Rebalanced quarterly<br/>Point-in-time
+            </div>
+          </div>
+        </div>
+
+        <!-- Right panel -->
+        <div class="lab-main">
+          <!-- Equity curve -->
+          <div class="chart-container">
+            <div class="flex items-center justify-between" style="margin-bottom:12px;">
+              <div class="chart-label" style="margin:0;">Cumulative Factor Return</div>
+              <div class="flex gap-2">
+                <button class="btn btn-ghost btn-sm">1Y</button>
+                <button class="btn btn-primary btn-sm" style="padding:5px 12px;">3Y</button>
+                <button class="btn btn-ghost btn-sm">5Y</button>
+              </div>
+            </div>
+            <svg width="100%" height="140" viewBox="0 0 700 140" preserveAspectRatio="none" style="display:block;">
+              <defs>
+                <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#16a34a" stop-opacity="0.15"/>
+                  <stop offset="100%" stop-color="#16a34a" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <path d="M0,120 C50,115 80,105 120,95 C160,85 180,90 220,78 C260,65 300,55 340,42 C380,30 400,38 440,28 C480,18 520,30 560,20 C600,12 640,16 700,10" fill="url(#lineGrad)" stroke="none"/>
+              <path d="M0,120 C50,115 80,105 120,95 C160,85 180,90 220,78 C260,65 300,55 340,42 C380,30 400,38 440,28 C480,18 520,30 560,20 C600,12 640,16 700,10" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round"/>
+              <!-- Baseline -->
+              <line x1="0" y1="120" x2="700" y2="120" stroke="#e5e7eb" stroke-width="1"/>
+              <!-- Y labels -->
+              <text x="5" y="13" font-size="10" fill="#9ca3af" font-family="JetBrains Mono">+42%</text>
+              <text x="5" y="63" font-size="10" fill="#9ca3af" font-family="JetBrains Mono">+20%</text>
+              <text x="5" y="122" font-size="10" fill="#9ca3af" font-family="JetBrains Mono">0%</text>
+            </svg>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:#9ca3af;font-family:'JetBrains Mono',monospace;margin-top:6px;">
+              <span>Jan 2020</span><span>Jan 2021</span><span>Jan 2022</span><span>Jan 2023</span><span>Dec 2024</span>
+            </div>
+          </div>
+
+          <!-- Metric tiles -->
+          <div class="grid-3">
+            <div class="metric-tile">
+              <div class="metric-tile-label">Sharpe Ratio</div>
+              <div class="metric-tile-val" style="color:var(--green);">1.34</div>
+              <div class="metric-tile-delta delta-pos">↑ Above threshold</div>
+            </div>
+            <div class="metric-tile">
+              <div class="metric-tile-label">Max Drawdown</div>
+              <div class="metric-tile-val" style="color:var(--red);">−18.2%</div>
+              <div class="metric-tile-delta delta-neg">↓ Peak-to-trough</div>
+            </div>
+            <div class="metric-tile">
+              <div class="metric-tile-label">Turnover</div>
+              <div class="metric-tile-val">42%</div>
+              <div class="metric-tile-delta" style="color:var(--text-muted);">Monthly avg</div>
+            </div>
+          </div>
+
+          <!-- Second row metrics -->
+          <div class="grid-4">
+            <div class="metric-tile" style="padding:12px 14px;">
+              <div class="metric-tile-label">IC</div>
+              <div class="metric-tile-val" style="font-size:18px;color:var(--accent);">0.063</div>
+            </div>
+            <div class="metric-tile" style="padding:12px 14px;">
+              <div class="metric-tile-label">Rank IC</div>
+              <div class="metric-tile-val" style="font-size:18px;">0.071</div>
+            </div>
+            <div class="metric-tile" style="padding:12px 14px;">
+              <div class="metric-tile-label">Sortino</div>
+              <div class="metric-tile-val" style="font-size:18px;color:var(--green);">1.87</div>
+            </div>
+            <div class="metric-tile" style="padding:12px 14px;">
+              <div class="metric-tile-label">Calmar</div>
+              <div class="metric-tile-val" style="font-size:18px;">0.74</div>
+            </div>
+          </div>
+
+          <button class="btn btn-rust" style="width:100%;padding:13px;font-size:14px;border-radius:11px;background:#9a3412;">
+            ⚡ Run stress test
+          </button>
+        </div>
+      </div>
+
+      <!-- ─── Stress test panel ─── -->
+      <div class="stress-config mt-6">
+        <h3>Configure stress scenario</h3>
+
+        <div class="scenario-label">Scenario type</div>
+        <div class="scenario-btns">
+          <button class="scenario-btn active">Market crash</button>
+          <button class="scenario-btn">Vol spike</button>
+          <button class="scenario-btn">Liquidity dry-up</button>
+        </div>
+
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>Shock magnitude</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-weight:600;color:#9a3412;">−15%</span>
+          </div>
+          <input type="range" class="range-slider" min="-40" max="0" value="-15" />
+        </div>
+
+        <div class="stress-meta">
+          <div class="stress-meta-box">
+            <label>Date range</label>
+            <div class="flex items-center gap-2">
+              <input type="text" class="date-input" value="2020-01-01" />
+              <span style="font-size:12px;color:var(--text-muted);">to</span>
+              <input type="text" class="date-input" value="today" style="width:80px;"/>
+            </div>
+          </div>
+          <div class="stress-meta-box">
+            <label>Universe</label>
+            <div style="font-size:13px;font-weight:700;">NIFTY 50 constituents</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">50 tickers · rebalanced quarterly</div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;margin-top:18px;">
+          <button class="btn btn-green" style="padding:12px 28px;font-size:14px;">Run scenario →</button>
+        </div>
+      </div>
+
+      <!-- ─── Results comparison ─── -->
+      <div class="mt-6">
+        <div style="font-size:14px;font-weight:700;margin-bottom:14px;">Stress test results · Market crash −15%</div>
+        <div class="result-cards">
+          <div class="result-card positive">
+            <h3>Momentum</h3>
+            <p>Crash scenario · −15% shock</p>
+            <svg width="100%" height="50" viewBox="0 0 200 50" style="margin-top:14px;" preserveAspectRatio="none">
+              <path d="M0,40 C30,38 50,32 80,28 C110,24 140,20 170,14 C185,11 195,10 200,8" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.8"/>
+            </svg>
+          </div>
+          <div class="result-card negative">
+            <h3>Low Volatility</h3>
+            <p>Crash scenario · −15% shock</p>
+            <svg width="100%" height="50" viewBox="0 0 200 50" style="margin-top:14px;" preserveAspectRatio="none">
+              <path d="M0,20 C30,21 50,22 80,22 C110,23 140,23 170,24 C185,24 195,24 200,25" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.8"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="card mt-4">
+          <table class="comp-table">
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th>Momentum</th>
+                <th>Low Volatility</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Sharpe (stressed)</td>
+                <td class="positive-val">0.62</td>
+                <td class="positive-val">0.91</td>
+              </tr>
+              <tr>
+                <td>Max Drawdown</td>
+                <td class="negative-val">−24.1%</td>
+                <td class="negative-val">−11.6%</td>
+              </tr>
+              <tr>
+                <td>Recovery (days)</td>
+                <td>96</td>
+                <td class="positive-val">54</td>
+              </tr>
+              <tr>
+                <td>Robustness Score</td>
+                <td>
+                  <span class="badge badge-amber">Moderate · 0.62</span>
+                </td>
+                <td>
+                  <span class="badge badge-green">Robust · 0.91</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ HISTORY ══════════════ -->
+    <div class="tab-panel" id="panel-history">
+      <div class="flex items-center justify-between" style="margin-bottom:24px;">
+        <div>
+          <div class="page-title">Experiment History</div>
+          <div class="page-subtitle">All your past factor evaluations</div>
+        </div>
+        <div class="flex gap-2">
+          <button class="btn btn-ghost btn-sm">Filter</button>
+          <button class="btn btn-ghost btn-sm">Export CSV</button>
+        </div>
+      </div>
+
+      <!-- History items -->
+      <div class="history-row">
+        <div class="history-icon" style="background:#dcfce7;">📈</div>
+        <div>
+          <div class="history-name">Momentum Factor 20d</div>
+          <div class="history-formula">Momentum(20)</div>
+        </div>
+        <span class="badge badge-green" style="margin-left:8px;">Robust · 0.87</span>
+        <div class="history-metrics">
+          <div style="text-align:right;">
+            <div class="history-metric-val" style="color:var(--green);">1.34</div>
+            <div class="history-metric-lbl">Sharpe</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="history-metric-val" style="color:var(--red);">−18.2%</div>
+            <div class="history-metric-lbl">Max DD</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="history-metric-val">0.063</div>
+            <div class="history-metric-lbl">IC</div>
+          </div>
+        </div>
+        <svg class="sparkline" viewBox="0 0 80 30">
+          <polyline points="0,25 15,20 30,22 45,14 60,10 75,8" fill="none" stroke="#16a34a" stroke-width="1.8"/>
+        </svg>
+        <div style="font-size:11px;color:var(--text-muted);white-space:nowrap;">3 days ago</div>
+      </div>
+
+      <div class="history-row">
+        <div class="history-icon" style="background:#fef3c7;">⚖️</div>
+        <div>
+          <div class="history-name">Momentum / Volatility Ratio</div>
+          <div class="history-formula">Momentum(5) / Volatility(10)</div>
+        </div>
+        <span class="badge badge-amber" style="margin-left:8px;">Moderate · 0.61</span>
+        <div class="history-metrics">
+          <div style="text-align:right;">
+            <div class="history-metric-val" style="color:var(--amber);">0.92</div>
+            <div class="history-metric-lbl">Sharpe</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="history-metric-val" style="color:var(--red);">−22.8%</div>
+            <div class="history-metric-lbl">Max DD</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="history-metric-val">0.041</div>
+            <div class="history-metric-lbl">IC</div>
+          </div>
+        </div>
+        <svg class="sparkline" viewBox="0 0 80 30">
+          <polyline points="0,10 15,14 30,12 45,18 60,16 75,20" fill="none" stroke="#d97706" stroke-width="1.8"/>
+        </svg>
+        <div style="font-size:11px;color:var(--text-muted);white-space:nowrap;">5 days ago</div>
+      </div>
+
+      <div class="history-row">
+        <div class="history-icon" style="background:#fee2e2;">📉</div>
+        <div>
+          <div class="history-name">Short-term Reversal</div>
+          <div class="history-formula">−Momentum(1)</div>
+        </div>
+        <span class="badge badge-red" style="margin-left:8px;">Fragile · 0.31</span>
+        <div class="history-metrics">
+          <div style="text-align:right;">
+            <div class="history-metric-val" style="color:var(--red);">0.18</div>
+            <div class="history-metric-lbl">Sharpe</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="history-metric-val" style="color:var(--red);">−41.3%</div>
+            <div class="history-metric-lbl">Max DD</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="history-metric-val">0.009</div>
+            <div class="history-metric-lbl">IC</div>
+          </div>
+        </div>
+        <svg class="sparkline" viewBox="0 0 80 30">
+          <polyline points="0,5 15,10 30,8 45,18 60,22 75,26" fill="none" stroke="#dc2626" stroke-width="1.8"/>
+        </svg>
+        <div style="font-size:11px;color:var(--text-muted);white-space:nowrap;">1 week ago</div>
+      </div>
+
+      <div class="history-row">
+        <div class="history-icon" style="background:#ede9fe;">🌊</div>
+        <div>
+          <div class="history-name">Rolling Volatility Signal</div>
+          <div class="history-formula">Rolling_Std(20)</div>
+        </div>
+        <span class="badge badge-green" style="margin-left:8px;">Robust · 0.82</span>
+        <div class="history-metrics">
+          <div style="text-align:right;">
+            <div class="history-metric-val" style="color:var(--green);">1.08</div>
+            <div class="history-metric-lbl">Sharpe</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="history-metric-val" style="color:var(--red);">−14.7%</div>
+            <div class="history-metric-lbl">Max DD</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="history-metric-val">0.058</div>
+            <div class="history-metric-lbl">IC</div>
+          </div>
+        </div>
+        <svg class="sparkline" viewBox="0 0 80 30">
+          <polyline points="0,22 15,18 30,16 45,12 60,9 75,7" fill="none" stroke="#6366f1" stroke-width="1.8"/>
+        </svg>
+        <div style="font-size:11px;color:var(--text-muted);white-space:nowrap;">2 weeks ago</div>
+      </div>
+
+      <div class="history-row">
+        <div class="history-icon" style="background:#e0f2fe;">📊</div>
+        <div>
+          <div class="history-name">Lagged Price Signal</div>
+          <div class="history-formula">Lag(Price, 5)</div>
+        </div>
+        <span class="badge badge-grey" style="margin-left:8px;">Running…</span>
+        <div class="history-metrics">
+          <div style="text-align:right;">
+            <div class="history-metric-val" style="color:var(--text-muted);">—</div>
+            <div class="history-metric-lbl">Sharpe</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="history-metric-val" style="color:var(--text-muted);">—</div>
+            <div class="history-metric-lbl">Max DD</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="history-metric-val" style="color:var(--text-muted);">—</div>
+            <div class="history-metric-lbl">IC</div>
+          </div>
+        </div>
+        <svg class="sparkline" viewBox="0 0 80 30">
+          <polyline points="0,15 75,15" fill="none" stroke="#d1d5db" stroke-width="1.8" stroke-dasharray="4,3"/>
+        </svg>
+        <div style="font-size:11px;color:var(--text-muted);white-space:nowrap;">Just now</div>
+      </div>
+    </div>
+
+  </div><!-- end .main -->
+</div><!-- end main column -->
+
+<!-- ═══ NODE DETAIL MODAL ══════════════════════════════════ -->
+<div class="node-detail" id="node-detail-overlay" onclick="closeDetail(event)">
+  <div class="node-detail-card" id="node-detail-card">
+    <button class="node-detail-close" onclick="closeDetailBtn()">✕</button>
+    <div id="node-detail-content"></div>
+  </div>
+</div>
+
+<script>
+  /* ─── Tab switching ─── */
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('panel-' + tab).classList.add('active');
+    document.getElementById('nav-' + tab).classList.add('active');
+  }
+
+  /* ─── Node detail content ─── */
+  const nodeDetails = {
+    client: {
+      title: 'Next.js Frontend',
+      color: '#3b82f6',
+      desc: 'The browser-facing application built with Next.js (App Router) and TypeScript. Deployed to Vercel for zero-ops hosting with automatic preview deployments on every pull request.',
+      bullets: ['Leaderboard — sortable factor ranking table', 'Factor Lab — DSL editor, equity curve chart, stress test UI', 'Factor Detail — metrics grid, robustness breakdown', 'History — experiment run log'],
+      subDiagram: ['Browser', 'Next.js App Router', 'React Components', 'Vercel CDN'],
+      techNote: 'Why Next.js? SSR for initial leaderboard load, React ecosystem for charts (Recharts), TypeScript for type-safety at the API boundary.'
+    },
+    api: {
+      title: 'FastAPI REST API',
+      color: '#4f46e5',
+      desc: 'The Python backend that handles all HTTP requests. Uses async SQLAlchemy for non-blocking database queries and dependency injection for clean separation of concerns.',
+      bullets: ['POST /experiments — create a new experiment', 'POST /factors — compile and store a DSL formula', 'POST /factors/{id}/backtest — enqueue backtest job', 'GET /factors/leaderboard — paginated, sortable results', 'GET /factors/{id}/robustness — stress test breakdown'],
+      subDiagram: ['Request', 'JWT Auth Middleware', 'DSL Validator', 'SQLAlchemy Session', 'Response'],
+      techNote: 'Why FastAPI? Native async support, automatic OpenAPI docs, Pydantic validation at zero extra cost, and Python-native — same language as the engine.'
+    },
+    worker: {
+      title: 'Celery Worker',
+      color: '#16a34a',
+      desc: 'A separate Python process that executes long-running computation jobs without blocking the API. Communicates with the API via Redis as a message broker. Results are written back to PostgreSQL.',
+      bullets: ['run_backtest(factor_id) — full walk-forward evaluation', 'run_robustness(factor_id) — 6 stress test iterations', 'Runs in asyncio.to_thread to avoid blocking the event loop', 'Stores equity_curve + perturbation_grid as JSON in Postgres'],
+      subDiagram: ['Redis Queue', 'Celery Worker', 'Engine', 'PostgreSQL'],
+      techNote: 'Why Celery and not threads? We measured backtest latency at 2–4 seconds. This is a measured problem, not a checklist item. Single queue — no premature optimisation.'
+    },
+    postgres: {
+      title: 'PostgreSQL — Metadata DB',
+      color: '#3b82f6',
+      desc: 'Stores all relational metadata: users, experiments, factors, and their computed results. Hosted on Neon (serverless Postgres) for free-tier production use. Alembic manages schema migrations.',
+      bullets: ['users — email, name, created_at', 'experiments — name, status (PENDING/RUNNING/FAILED/COMPLETED)', 'factors — name, formula (DSL expression), experiment FK', 'backtest_results — Sharpe, IC, equity_curve JSON', 'robustness_results — scores, failure_reasons JSON, perturbation_grid'],
+      subDiagram: ['SQLAlchemy ORM', 'Alembic Migrations', 'Neon Serverless', 'JSONB Columns'],
+      techNote: 'Why PostgreSQL and not SQLite? Production-grade ACID guarantees, JSONB support for equity curves, and Neon\'s serverless model has zero cold-start penalty for read queries.'
+    },
+    duckdb: {
+      title: 'DuckDB — Analytical DB',
+      color: '#d97706',
+      desc: 'An embedded columnar database that stores all OHLCV market data. Optimised for fast rolling-window computations (like Momentum(20)) across 50 tickers without a database server.',
+      bullets: ['ohlcv — ticker, date, open, high, low, close, volume, adj_close', 'universe — point-in-time NIFTY 50 constituent history', 'factor_values — computed daily factor scores per ticker', 'Data source: Yahoo Finance via yfinance library'],
+      subDiagram: ['Yahoo Finance', 'Validation Pipeline', 'DuckDB File', 'Engine Reads'],
+      techNote: 'Why DuckDB alongside PostgreSQL? DuckDB is columnar — a rolling 20-day mean across 50 tickers is a scan, not a lookup. PostgreSQL is row-oriented and optimised for OLTP metadata, not analytical scans.'
+    },
+    dsl: {
+      title: 'Factor DSL Compiler',
+      color: '#dc2626',
+      desc: 'A domain-specific language that lets users define factor formulas like Momentum(20) / Volatility(10) without writing arbitrary Python. This is safer (no code injection), more auditable, and allows static look-ahead bias detection.',
+      bullets: ['Lexer — tokenises the formula string', 'Parser — builds an Abstract Syntax Tree (AST)', 'Static Validator — detects look-ahead bias, invalid windows, unsupported functions', 'Pandas Codegen — compiles AST to a vectorised pandas callable'],
+      subDiagram: ['Formula string', 'Lexer → Tokens', 'Parser → AST', 'Validator', 'pandas Callable'],
+      techNote: 'Why a DSL instead of sandboxed Python? A DSL makes look-ahead bias detection tractable — you can traverse the AST and flag Lag(n) with n < 0 statically. In arbitrary Python, this is NP-hard.'
+    },
+    engine: {
+      title: 'Backtest + Robustness Engine',
+      color: '#0d9488',
+      desc: 'The computational core. The backtesting engine runs a vectorised walk-forward evaluation. The robustness engine wraps it in a PerturbedStorage decorator to inject noise and drop data bars.',
+      bullets: ['FactorEvaluator — cross-sectional signal computation across 50 tickers', 'PortfolioConstructor — dollar-neutral weight normalisation', 'PerformanceCalculator — Sharpe, Sortino, Calmar, Max Drawdown, IC, RankIC', 'PerturbedStorage — decorator over DuckDB that applies Gaussian noise or random bar drops', 'RobustnessEvaluator — 3 noise levels × 3 missing-data levels × N iterations → robustness score'],
+      subDiagram: ['DuckDB OHLCV', 'PerturbedStorage', 'FactorEvaluator', 'PortfolioConstructor', 'PerformanceCalculator → Sharpe'],
+      techNote: 'Robustness score = avg(stressed Sharpe / baseline Sharpe) clamped to [0, 1]. A score of 0.8 means the factor retained 80% of its Sharpe under the worst perturbation.'
+    },
+    data: {
+      title: 'Data Layer',
+      color: '#d97706',
+      desc: 'Handles all market data ingestion from Yahoo Finance, validation, and storage into DuckDB. Enforces point-in-time universe construction so a factor evaluated in 2021 only sees NIFTY 50 constituents that existed in 2021.',
+      bullets: ['YahooDataProvider — fetches OHLCV via yfinance', 'ValidationSuite — schema checks, price jump detection, weekend gap detection, corporate action handling', 'DuckDBStorage — write_ohlcv, read_ohlcv, universe queries', 'NIFTY50Universe — CSV-based point-in-time constituent history'],
+      subDiagram: ['Yahoo Finance API', 'Validation Suite', 'DuckDB Storage', 'Engine'],
+      techNote: 'Point-in-time universe is critical. Without it, a backtest in 2020 might include stocks that only joined NIFTY 50 in 2022 — a form of survivorship bias that inflates returns.'
+    }
+  };
+
+  function openDetail(id) {
+    const d = nodeDetails[id];
+    if (!d) return;
+    const subHTML = d.subDiagram.map((s, i, arr) =>
+      `<span class="sub-box">${s}</span>${i < arr.length-1 ? '<span class="sub-arrow">→</span>' : ''}`
+    ).join('');
+    document.getElementById('node-detail-content').innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <div style="width:10px;height:10px;border-radius:50%;background:${d.color};"></div>
+        <h2 style="margin:0;">${d.title}</h2>
+      </div>
+      <p>${d.desc}</p>
+      <div class="sub-diagram">${subHTML}</div>
+      <div class="detail-sub">What it does</div>
+      <ul>${d.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
+      <div class="detail-sub">Engineering decision</div>
+      <p style="font-size:12px;color:#6b7280;font-style:italic;">${d.techNote}</p>
+    `;
+    document.getElementById('node-detail-overlay').classList.add('open');
+  }
+
+  function closeDetail(e) {
+    if (e.target === document.getElementById('node-detail-overlay')) closeDetailBtn();
+  }
+  function closeDetailBtn() {
+    document.getElementById('node-detail-overlay').classList.remove('open');
+  }
+
+  /* ─── Scenario btn toggle ─── */
+  document.querySelectorAll('.scenario-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  /* ─── Factor btn toggle ─── */
+  document.querySelectorAll('.factor-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.factor-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

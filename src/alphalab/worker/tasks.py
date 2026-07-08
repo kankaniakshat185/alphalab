@@ -173,13 +173,20 @@ async def _run_robustness_async(factor_id: str) -> None:
             raise e
 
 
+def _run_coroutine_safely(coro):
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(coro)
+    except RuntimeError:
+        asyncio.run(coro)
+
 @celery_app.task  # type: ignore[untyped-decorator]
 def run_backtest_task(factor_id: str) -> None:
     """Synchronous Celery task wrapper launching the asynchronous backtest worker."""
-    asyncio.run(_run_backtest_async(factor_id))
+    _run_coroutine_safely(_run_backtest_async(factor_id))
 
 
 @celery_app.task  # type: ignore[untyped-decorator]
 def run_robustness_task(factor_id: str) -> None:
-    """Synchronous Celery task wrapper launching the asynchronous robustness worker."""
-    asyncio.run(_run_robustness_async(factor_id))
+    """Synchronous Celery task wrapper launching the asynchronous robustness evaluation worker."""
+    _run_coroutine_safely(_run_robustness_async(factor_id))

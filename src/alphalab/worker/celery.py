@@ -23,4 +23,5 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
     imports=["alphalab.worker.tasks"],
+    task_always_eager=settings.MOCK_MODE,
 )
