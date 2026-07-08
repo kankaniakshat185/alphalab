@@ -34,6 +34,7 @@ class BacktestResult(Base):
     turnover: Mapped[float | None] = mapped_column(Float, nullable=True)
     ic: Mapped[float | None] = mapped_column(Float, nullable=True)
     rank_ic: Mapped[float | None] = mapped_column(Float, nullable=True)
+    equity_curve: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, nullable=True)
 
     # Relationship
     factor: Mapped["Factor"] = relationship("Factor", back_populates="backtest_result")
@@ -52,7 +53,8 @@ class RobustnessResult(Base):
     noise_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     missing_data_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     overall_score: Mapped[float | None] = mapped_column(Float, nullable=True)
-    failure_reasons: Mapped[Any | None] = mapped_column(JSON, nullable=True)
+    failure_reasons: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    perturbation_grid: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, nullable=True)
 
     # Relationship
     factor: Mapped["Factor"] = relationship(

@@ -1,20 +1,14 @@
 # AlphaLab — Next Stage
 
-> **Upcoming phase:** Phase 6 — Backend API Expansion
-> **Depends on:** Phase 5 — Robustness Engine complete ✅
-> **Last updated:** 2026-07-06
+> **Upcoming phase:** Phase 7 — Research Reports
+> **Depends on:** Phase 6 — Backend API Expansion ✅
+> **Last updated:** 2026-07-08
 
 ---
 
 ## Objective
 
-Expand the FastAPI backend API router to support the frontend screens:
-1.  **Factor Leaderboard (`GET /leaderboard`)**:
-    *   Expose a sortable leaderboard containing factor details, formulas, Sharpe, IC, and Robustness overall scores.
-2.  **Factor Details (`GET /factors/{factor_id}`)**:
-    *   Retrieve completed backtest performance metrics, stress test ratios, and failure reasons for a single factor.
-3.  **Factor Backtest/Robustness Details (`GET /factors/{factor_id}/backtest` and `GET /factors/{factor_id}/robustness`)**:
-    *   Dedicated endpoints for retrieving underlying dataset values, equity curve series, and the noise x missing-data grid coordinates.
+Design and implement a **Research Report Generator** that aggregates the results of an experiment into a portable, human-readable format (e.g., Markdown or PDF). This provides the quant researcher with a tangible artifact that can be shared, archived, and reviewed outside of the web application.
 
 ---
 
@@ -22,28 +16,30 @@ Expand the FastAPI backend API router to support the frontend screens:
 
 | Deliverable | Description |
 |---|---|
-| Leaderboard Endpoint | `GET /leaderboard` sorting by Sharpe, IC, or Robustness score. |
-| Factor Router | `src/alphalab/api/routers/factors.py` for factor metrics, backtest details, and robustness details. |
-| Phase 6 Tests | Integration tests validating leaderboard retrieval and factor queries. |
+| Report Template | A Jinja2 (or similar) template defining the structure of the quantitative report. |
+| Report Generator | Python service class to inject experiment results (metrics, failure explanations, recommendations) into the template. |
+| API Endpoint | `GET /factors/{factor_id}/report` to trigger report generation and download. |
 
 ---
 
 ## Files Expected to Change or Be Created
 
 ```
+src/alphalab/reports/
+    generator.py        (NEW: Core reporting logic)
+    templates/
+        factor_report.md.j2  (NEW: Base template)
+
 src/alphalab/api/routers/
-    factors.py          (NEW: Factor and Leaderboard routes)
+    factors.py          (Updated: Add report download endpoint)
 
-src/alphalab/api/main.py
-    (Register factors router)
-
-tests/api/
-    test_factors.py     (NEW: API endpoints test suite)
+tests/reports/
+    test_generator.py   (NEW: Unit tests for report logic)
 
 docs/
-    02_CURRENT_STATE.md  Updated: Phase 6 complete
-    03_NEXT_STAGE.md     Rewritten: Phase 7 (Research Reports)
+    02_CURRENT_STATE.md  Updated: Phase 7 complete
+    03_NEXT_STAGE.md     Rewritten: Phase 8 (Frontend)
 
 internal/
-    development_log/Phase_06.md
+    development_log/Phase_07.md
 ```

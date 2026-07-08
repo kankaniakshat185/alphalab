@@ -222,6 +222,7 @@ class RobustnessEvaluator:
 
         # 1. Run Noise Stress Tests
         noise_ratios = []
+        perturbation_grid = []
         for level in noise_levels:
             level_sharpes = []
             for _ in range(self.num_iterations):
@@ -244,6 +245,12 @@ class RobustnessEvaluator:
             else:
                 ratio = min(1.0, max(0.0, avg_level_sharpe / baseline_sharpe))
             noise_ratios.append(ratio)
+            perturbation_grid.append({
+                "perturbation": "noise",
+                "level": level,
+                "sharpe": float(np.round(avg_level_sharpe, 4)),
+                "retention": float(np.round(ratio, 4))
+            })
 
         noise_score = sum(noise_ratios) / len(noise_ratios)
 
@@ -268,6 +275,12 @@ class RobustnessEvaluator:
             else:
                 ratio = min(1.0, max(0.0, avg_level_sharpe / baseline_sharpe))
             missing_ratios.append(ratio)
+            perturbation_grid.append({
+                "perturbation": "missing_data",
+                "level": level,
+                "sharpe": float(np.round(avg_level_sharpe, 4)),
+                "retention": float(np.round(ratio, 4))
+            })
 
         missing_data_score = sum(missing_ratios) / len(missing_ratios)
 
@@ -284,6 +297,7 @@ class RobustnessEvaluator:
             "missing_data_score": float(np.round(missing_data_score, 4)),
             "overall_score": float(np.round(overall_score, 4)),
             "failure_reasons": failure_reasons,
+            "perturbation_grid": perturbation_grid,
         }
 
     def _run_perturbed_backtest(
@@ -341,39 +355,45 @@ class RobustnessEvaluator:
         is_missing_sensitive = missing_data_score < threshold
 
         if baseline_sharpe <= 0.0:
-            sensitivity_profile = "not_profitable"
-            details = (
+            dominant_failure = "not_profitable"
+            explanation = (
                 f"Factor is not profitable at baseline (Sharpe: {baseline_sharpe:.2f}). "
                 "Robustness analysis is inconclusive."
             )
+            recommendations = ["Review factor logic for basic profitability before assessing robustness."]
         elif is_noise_sensitive and is_missing_sensitive:
-            sensitivity_profile = "both"
-            details = (
+            dominant_failure = "both"
+            explanation = (
                 f"Factor is highly fragile to both pricing noise (score: {noise_score:.2f}) "
                 f"and missing data bars (score: {missing_data_score:.2f})."
             )
+            recommendations = [
+                "Increase lookback window to smooth out daily noise.",
+                "Add explicit data imputation for missing price points."
+            ]
         elif is_noise_sensitive:
-            sensitivity_profile = "noise_sensitive"
-            details = (
+            dominant_failure = "noise_sensitive"
+            explanation = (
                 f"Factor is sensitive to pricing noise (score: {noise_score:.2f}) "
                 f"but stable under missing data (score: {missing_data_score:.2f})."
             )
+            recommendations = ["Use moving averages to smooth the raw price input before calculation."]
         elif is_missing_sensitive:
-            sensitivity_profile = "missing_data_sensitive"
-            details = (
-                f"Factor is stable under pricing noise (score: {noise_score:.2f}) "
-                f"but fragile to missing data bars (score: {missing_data_score:.2f})."
+            dominant_failure = "missing_data_sensitive"
+            explanation = (
+                f"Factor is sensitive to missing data bars (score: {missing_data_score:.2f}) "
+                f"but handles pricing noise well (score: {noise_score:.2f})."
             )
+            recommendations = ["Use forward-fill or volume-weighted interpolation for missing prices."]
         else:
-            sensitivity_profile = "robust"
-            details = (
-                f"Factor is highly robust (overall score: {overall_score:.2f}). "
-                f"Maintains performance under stress."
-            )
+            dominant_failure = "none"
+            explanation = "Factor is highly robust to both noise and missing data."
+            recommendations = ["Factor is ready for production scaling."]
 
         return {
-            "sensitivity_profile": sensitivity_profile,
-            "details": details,
+            "dominant_failure": dominant_failure,
+            "explanation": explanation,
+            "recommendations": recommendations,
             "noise_ratio": float(np.round(noise_score, 2)),
             "missing_data_ratio": float(np.round(missing_data_score, 2)),
         }
