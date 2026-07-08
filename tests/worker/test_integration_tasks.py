@@ -134,8 +134,8 @@ def test_backtest_task_integration_success(
 
 @pytest.mark.integration
 @patch("alphalab.worker.tasks.async_session_maker")
-@patch("alphalab.engine.runner.DuckDBStorage")
-@patch("alphalab.engine.runner.NIFTY50Universe")
+@patch("alphalab.worker.tasks.DuckDBStorage")
+@patch("alphalab.worker.tasks.NIFTY50Universe")
 def test_robustness_task_integration_success(
     mock_run_universe_class: MagicMock,
     mock_run_storage_class: MagicMock,
@@ -143,7 +143,7 @@ def test_robustness_task_integration_success(
     temp_duckdb: DuckDBStorage,
 ) -> None:
     """Verify that run_robustness_task executes real perturbations and saves scores."""
-    # Mock storage/universe for both backtest runner and robustness evaluator
+    # Mock storage/universe for robustness task
     mock_run_storage_class.return_value = temp_duckdb
 
     mock_universe = MagicMock()
