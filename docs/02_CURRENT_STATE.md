@@ -1,17 +1,17 @@
 # AlphaLab — Current State
 
-> **Current phase:** Phase 4 — Background Workers ✅ Complete
-> **Next phase:** Phase 5 — Robustness Engine
+> **Current phase:** Phase 5 — Robustness Engine ✅ Complete
+> **Next phase:** Phase 6 — Backend API
 > **Last updated:** 2026-07-06
 
 ---
 
-## Phase 4 Summary
+## Phase 5 Summary
 
-Phase 4 integrated background worker execution with PostgreSQL status tracking, the Factor DSL, and the backtesting simulation engine:
-1.  **Background Tasks (`tasks.py`)**: Replaced task stubs with real end-to-end factor evaluation runs. The Celery worker fetches factor definitions from PostgreSQL, retrieves start/end date ranges dynamically from DuckDB, resolves active constituents, compiles the factor, and runs the evaluation engine.
-2.  **Experiment State Machine**: Implemented error catching to update parent `Experiment` status to `FAILED` if factor parsing, validation, or backtesting fails. On successful completion of all factors, status resolves to `COMPLETED`.
-3.  **Integration Testing**: Added `test_integration_tasks.py` verifying real calculations, metrics calculation, and database state updates against temporary database instances.
+Phase 5 designed and implemented the **Robustness Engine** that evaluates factor stability under synthetic stress tests:
+1.  **Pricing Perturbation & Missing Data (`robustness.py`)**: Implemented Gaussian noise addition to pricing/volume columns and consecutive chunk-dropping to simulate missing data.
+2.  **Stochastic Stress Evaluation**: Designed `RobustnessEvaluator` which runs multiple backtest iterations under degraded conditions, computes Robustness Ratios against the baseline Sharpe ratio, and generates structured failure analysis heuristics (e.g., noise-sensitive vs. missing-data-sensitive).
+3.  **Task Worker Integration**: Connected the background Celery task `run_robustness_task` to run evaluations in a background thread and save the real scores to PostgreSQL.
 
 ---
 
@@ -20,11 +20,11 @@ Phase 4 integrated background worker execution with PostgreSQL status tracking, 
 ### Repository Structure
 *   `src/alphalab/data/`: Data ingestion, validation, and storage. (Phase 1)
 *   `src/alphalab/api/`: FastAPI routes, async db connections, model schemas, token authentication. (Phase 1)
-*   `src/alphalab/worker/`: Celery task definitions and real backtest execution logic. (Phase 4)
+*   `src/alphalab/worker/`: Celery task definitions and real backtest / robustness execution logic. (Phase 4, 5)
 *   `src/alphalab/dsl/`: Lexer, Parser, AST, Validator, and Pandas Compiler. (Phase 2)
-*   `src/alphalab/engine/`: Backtesting evaluator, portfolio constructor, and metrics. (Phase 3)
+*   `src/alphalab/engine/`: Backtesting evaluator, portfolio constructor, metrics, and robustness evaluator. (Phase 3, 5)
 *   `alembic/`: Database migration versions.
-*   `tests/`: Extensive test suite covering data, endpoints, hashing, celery, backtest calculations, and the DSL compiler.
+*   `tests/`: Extensive test suite covering data, endpoints, hashing, celery, backtest/robustness calculations, and the DSL compiler.
 
 ### Configuration & Tooling
 *   All linter, formatting, and static typing checks pass.
@@ -35,8 +35,6 @@ Phase 4 integrated background worker execution with PostgreSQL status tracking, 
 
 | Component | Phase |
 |---|---|
-| Celery task runner execution logic | 4 |
-| Robustness engine | 5 |
 | API Factor submission endpoints | 6 |
 | Research report generator | 7 |
 | Next.js frontend | 8 |
@@ -45,4 +43,4 @@ Phase 4 integrated background worker execution with PostgreSQL status tracking, 
 
 ## Next
 
-→ See [`docs/03_NEXT_STAGE.md`](03_NEXT_STAGE.md) for Phase 4 — Background Workers.
+→ See [`docs/03_NEXT_STAGE.md`](03_NEXT_STAGE.md) for Phase 6 — Backend API.

@@ -1,23 +1,20 @@
 # AlphaLab — Next Stage
 
-> **Upcoming phase:** Phase 5 — Robustness Engine & Noise Perturbation
-> **Depends on:** Phase 1, 2, 3, & 4 complete ✅
+> **Upcoming phase:** Phase 6 — Backend API Expansion
+> **Depends on:** Phase 5 — Robustness Engine complete ✅
 > **Last updated:** 2026-07-06
 
 ---
 
 ## Objective
 
-Design and implement the **Robustness Engine** that evaluates factor stability under synthetic stress tests.
-
-The robustness worker must:
-*   Receive a task via Redis (`run_robustness_task(factor_id)`).
-*   Perturb the cleaned pricing dataset in DuckDB using:
-    1.  **Gaussian noise** additions to Close/AdjClose prices.
-    2.  **Missing data simulation** by dropping chunks of dates/bars.
-*   Run the factor evaluation and portfolio return calculations over these perturbed datasets.
-*   Compute the **Robustness Ratio** comparing the stressed Sharpe ratio to the baseline Sharpe ratio.
-*   Write the results (`noise_score`, `missing_data_score`, `overall_score`, `failure_reasons`) back to the `robustness_results` PostgreSQL table and update the status tracker.
+Expand the FastAPI backend API router to support the frontend screens:
+1.  **Factor Leaderboard (`GET /leaderboard`)**:
+    *   Expose a sortable leaderboard containing factor details, formulas, Sharpe, IC, and Robustness overall scores.
+2.  **Factor Details (`GET /factors/{factor_id}`)**:
+    *   Retrieve completed backtest performance metrics, stress test ratios, and failure reasons for a single factor.
+3.  **Factor Backtest/Robustness Details (`GET /factors/{factor_id}/backtest` and `GET /factors/{factor_id}/robustness`)**:
+    *   Dedicated endpoints for retrieving underlying dataset values, equity curve series, and the noise x missing-data grid coordinates.
 
 ---
 
@@ -25,28 +22,28 @@ The robustness worker must:
 
 | Deliverable | Description |
 |---|---|
-| Robustness Evaluator | `src/alphalab/engine/robustness.py` implementing Gaussian and missing data perturbations. |
-| Worker Updates | Connect `tasks.py` robustness job call to the actual robustness evaluator. |
-| Phase 5 Tests | Unit and integration tests validating that noise is injected and overall scores are computed accurately. |
+| Leaderboard Endpoint | `GET /leaderboard` sorting by Sharpe, IC, or Robustness score. |
+| Factor Router | `src/alphalab/api/routers/factors.py` for factor metrics, backtest details, and robustness details. |
+| Phase 6 Tests | Integration tests validating leaderboard retrieval and factor queries. |
 
 ---
 
 ## Files Expected to Change or Be Created
 
 ```
-src/alphalab/engine/
-    robustness.py      (NEW: Noise perturbation and scores calculator)
+src/alphalab/api/routers/
+    factors.py          (NEW: Factor and Leaderboard routes)
 
-src/alphalab/worker/
-    tasks.py           (Update _run_robustness_async to trigger real evaluations)
+src/alphalab/api/main.py
+    (Register factors router)
 
-tests/engine/
-    test_robustness.py (NEW: Perturbation unit tests)
+tests/api/
+    test_factors.py     (NEW: API endpoints test suite)
 
 docs/
-    02_CURRENT_STATE.md      Updated: Phase 5 complete
-    03_NEXT_STAGE.md         Rewritten: Phase 6 (API Expansion)
+    02_CURRENT_STATE.md  Updated: Phase 6 complete
+    03_NEXT_STAGE.md     Rewritten: Phase 7 (Research Reports)
 
 internal/
-    development_log/Phase_05.md
+    development_log/Phase_06.md
 ```
