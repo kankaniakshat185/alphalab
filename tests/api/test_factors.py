@@ -5,6 +5,7 @@ Test suite for the factors router (leaderboard and details).
 """
 
 import uuid
+from collections.abc import Generator
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
@@ -24,8 +25,6 @@ def mock_db() -> AsyncMock:
     db = AsyncMock()
     return db
 
-
-from collections.abc import Generator
 
 @pytest.fixture
 def client(mock_db: AsyncMock) -> Generator[TestClient, None, None]:
