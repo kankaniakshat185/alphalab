@@ -57,6 +57,19 @@ class ExperimentRunner:
             portfolio_returns, signals_df, prices_df
         )
 
+        # Compute equity curve for the API
+        if portfolio_returns.empty:
+            equity_curve = []
+        else:
+            cumulative_returns = (1 + portfolio_returns).cumprod()
+            equity_curve = [
+                {
+                    "date": dt.strftime("%Y-%m-%d") if hasattr(dt, "strftime") else str(dt),
+                    "cumulative_return": float(val),
+                }
+                for dt, val in cumulative_returns.items()
+            ]
+
         # Check if backtest result already exists to avoid unique constraint violations
         stmt = select(BacktestResult).where(BacktestResult.factor_id == factor.id)
         db_res = await session.execute(stmt)
@@ -72,11 +85,13 @@ class ExperimentRunner:
                 turnover=None,
                 ic=metrics.get("ic"),
                 rank_ic=None,
+                equity_curve=equity_curve,
             )
             session.add(b_res)
         else:
             b_res.sharpe = metrics.get("sharpe")
             b_res.max_drawdown = metrics.get("max_drawdown")
             b_res.ic = metrics.get("ic")
+            b_res.equity_curve = equity_curve
 
         await session.flush()
