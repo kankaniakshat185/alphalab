@@ -125,8 +125,8 @@ def test_robustness_evaluator_basic(sample_price_df):
     assert "failure_reasons" in results
 
     reasons = results["failure_reasons"]
-    assert "sensitivity_profile" in reasons
-    assert "details" in reasons
+    assert "dominant_failure" in reasons
+    assert "explanation" in reasons
     assert "noise_ratio" in reasons
     assert "missing_data_ratio" in reasons
 
@@ -154,4 +154,4 @@ def test_robustness_evaluator_unprofitable_baseline(
     assert results["noise_score"] == 0.0
     assert results["missing_data_score"] == 0.0
     assert results["overall_score"] == 0.0
-    assert results["failure_reasons"]["sensitivity_profile"] == "not_profitable"
+    assert results["failure_reasons"]["dominant_failure"] == "not_profitable"
