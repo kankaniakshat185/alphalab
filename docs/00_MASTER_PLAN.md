@@ -126,12 +126,12 @@ AlphaLab is a two-service system:
 | Phase | Name | Status |
 |---|---|---|
 | 0 | Engineering Foundation | ✅ Complete |
-| 1 | Data Foundation | 🔲 Next |
-| 2 | Factor DSL | 🔲 Planned |
-| 3 | Backtesting Engine | 🔲 Planned |
-| 4 | Background Execution | 🔲 Planned |
-| 5 | Robustness Engine | 🔲 Planned |
-| 6 | Backend API | 🔲 Planned |
+| 1 | Data Foundation | ✅ Complete |
+| 2 | Factor DSL | ✅ Complete |
+| 3 | Backtesting Engine | ✅ Complete |
+| 4 | Background Execution | ✅ Complete |
+| 5 | Robustness Engine | ✅ Complete |
+| 6 | Backend API | 🔲 Next |
 | 7 | Research Reports | 🔲 Planned |
 | 8 | Frontend | 🔲 Planned |
 | 9 | Testing | 🔲 Planned |
