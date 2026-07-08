@@ -10,6 +10,9 @@ from alphalab.api.database.connection import async_session_maker
 from alphalab.api.models.experiment import Experiment
 from alphalab.api.models.factor import Factor
 from alphalab.api.models.results import RobustnessResult
+from alphalab.data.storage.duckdb import DuckDBStorage
+from alphalab.data.universe.nifty50 import NIFTY50Universe
+from alphalab.engine.robustness import RobustnessEvaluator
 from alphalab.engine.runner import ExperimentRunner
 from alphalab.worker.celery import celery_app
 
@@ -99,12 +102,30 @@ async def _run_robustness_async(factor_id: str) -> None:
     async with async_session_maker() as session:
         try:
             f_uuid = uuid.UUID(factor_id)
-            factor = await session.get(Factor, f_uuid)
+            # Load factor with backtest_result pre-loaded to access baseline Sharpe ratio
+            factor = await session.get(
+                Factor, f_uuid, options=[selectinload(Factor.backtest_result)]
+            )
             if not factor:
                 logger.error(
                     f"[Celery] [Robustness] Factor {factor_id} not found in database"
                 )
                 return
+
+            # Resolve universe tickers to test on
+            storage = DuckDBStorage()
+            start_date, end_date = storage.get_available_date_range()
+            universe = NIFTY50Universe()
+            constituents = universe.get_constituents(end_date)
+            tickers = [c.ticker for c in constituents]
+
+            baseline_sharpe = (
+                factor.backtest_result.sharpe if factor.backtest_result else None
+            )
+            evaluator = RobustnessEvaluator(base_storage=storage)
+            res = await asyncio.to_thread(
+                evaluator.run_robustness, factor.formula, tickers, start_date, end_date, baseline_sharpe
+            )
 
             # Check if robustness result already exists to avoid unique constraint violations
             stmt = select(RobustnessResult).where(RobustnessResult.factor_id == f_uuid)
@@ -114,15 +135,17 @@ async def _run_robustness_async(factor_id: str) -> None:
             if not r_res:
                 r_res = RobustnessResult(
                     factor_id=f_uuid,
-                    noise_score=0.82,
-                    missing_data_score=0.91,
-                    overall_score=0.86,
-                    failure_reasons={},
+                    noise_score=res["noise_score"],
+                    missing_data_score=res["missing_data_score"],
+                    overall_score=res["overall_score"],
+                    failure_reasons=res["failure_reasons"],
                 )
                 session.add(r_res)
             else:
-                r_res.overall_score = 0.86
-                r_res.noise_score = 0.82
+                r_res.noise_score = res["noise_score"]
+                r_res.missing_data_score = res["missing_data_score"]
+                r_res.overall_score = res["overall_score"]
+                r_res.failure_reasons = res["failure_reasons"]
 
             await session.flush()
             await _check_and_update_experiment_status_async(

@@ -1,23 +1,14 @@
 # AlphaLab — Next Stage
 
-> **Upcoming phase:** Phase 5 — Robustness Engine & Noise Perturbation
-> **Depends on:** Phase 1, 2, 3, & 4 complete ✅
-> **Last updated:** 2026-07-06
+> **Upcoming phase:** Phase 7 — Research Reports
+> **Depends on:** Phase 6 — Backend API Expansion ✅
+> **Last updated:** 2026-07-08
 
 ---
 
 ## Objective
 
-Design and implement the **Robustness Engine** that evaluates factor stability under synthetic stress tests.
-
-The robustness worker must:
-*   Receive a task via Redis (`run_robustness_task(factor_id)`).
-*   Perturb the cleaned pricing dataset in DuckDB using:
-    1.  **Gaussian noise** additions to Close/AdjClose prices.
-    2.  **Missing data simulation** by dropping chunks of dates/bars.
-*   Run the factor evaluation and portfolio return calculations over these perturbed datasets.
-*   Compute the **Robustness Ratio** comparing the stressed Sharpe ratio to the baseline Sharpe ratio.
-*   Write the results (`noise_score`, `missing_data_score`, `overall_score`, `failure_reasons`) back to the `robustness_results` PostgreSQL table and update the status tracker.
+Design and implement a **Research Report Generator** that aggregates the results of an experiment into a portable, human-readable format (e.g., Markdown or PDF). This provides the quant researcher with a tangible artifact that can be shared, archived, and reviewed outside of the web application.
 
 ---
 
@@ -25,28 +16,30 @@ The robustness worker must:
 
 | Deliverable | Description |
 |---|---|
-| Robustness Evaluator | `src/alphalab/engine/robustness.py` implementing Gaussian and missing data perturbations. |
-| Worker Updates | Connect `tasks.py` robustness job call to the actual robustness evaluator. |
-| Phase 5 Tests | Unit and integration tests validating that noise is injected and overall scores are computed accurately. |
+| Report Template | A Jinja2 (or similar) template defining the structure of the quantitative report. |
+| Report Generator | Python service class to inject experiment results (metrics, failure explanations, recommendations) into the template. |
+| API Endpoint | `GET /factors/{factor_id}/report` to trigger report generation and download. |
 
 ---
 
 ## Files Expected to Change or Be Created
 
 ```
-src/alphalab/engine/
-    robustness.py      (NEW: Noise perturbation and scores calculator)
+src/alphalab/reports/
+    generator.py        (NEW: Core reporting logic)
+    templates/
+        factor_report.md.j2  (NEW: Base template)
 
-src/alphalab/worker/
-    tasks.py           (Update _run_robustness_async to trigger real evaluations)
+src/alphalab/api/routers/
+    factors.py          (Updated: Add report download endpoint)
 
-tests/engine/
-    test_robustness.py (NEW: Perturbation unit tests)
+tests/reports/
+    test_generator.py   (NEW: Unit tests for report logic)
 
 docs/
-    02_CURRENT_STATE.md      Updated: Phase 5 complete
-    03_NEXT_STAGE.md         Rewritten: Phase 6 (API Expansion)
+    02_CURRENT_STATE.md  Updated: Phase 7 complete
+    03_NEXT_STAGE.md     Rewritten: Phase 8 (Frontend)
 
 internal/
-    development_log/Phase_05.md
+    development_log/Phase_07.md
 ```

@@ -1,8 +1,8 @@
 # AlphaLab — Architecture
 
 > **Status:** Living document — updated after every phase
-> **Current phase:** Phase 3 — Backtesting Engine
-> **Last updated:** 2026-07-06
+> **Current phase:** Phase 5 — Robustness Engine (Complete)
+> **Last updated:** 2026-07-08
 
 ---
 
@@ -36,12 +36,12 @@ AlphaLab is a two-service system backed by two databases.
 │                       │           │                                │
 │  users                │  ◄────────│  run_backtest(factor_id)       │
 │  experiments          │  results  │  run_robustness(factor_id)     │
-│  factors              │           │                                │
-│  backtest_results     │           │  Phase 4                       │
-│  robustness_results   │           └───────────┬────────────────────┘
+│  factors              │           │                            │
+│  backtest_results     │           │                            │
+│  robustness_results   │           └───────────┬────────────────┘
 │  job_status           │                       │ DuckDB (read)
-│                       │           ┌───────────▼────────────────────┐
-│  Phase 6 schema       │           │  DuckDB                        │
+│                       │           ┌───────────▼────────────────┐
+│  Phase 6 schema       │           │  DuckDB                    │
 └───────────────────────┘           │  (src/alphalab/data/)          │
                                     │                                │
                                     │  ohlcv (ticker, date, OHLCV)  │
@@ -119,7 +119,7 @@ User triggers backtest via POST /factors/{id}/backtest
     → api: GET /factors/{id}/backtest → 200 with results
 ```
 
-### Robustness Evaluation (Phase 5 planned)
+### Robustness Evaluation (Phase 5)
 
 ```
 User triggers robustness via POST /factors/{id}/robustness

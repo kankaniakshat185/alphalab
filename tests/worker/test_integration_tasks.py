@@ -14,10 +14,10 @@ import pandas as pd
 import pytest
 
 from alphalab.api.models.factor import Factor
-from alphalab.api.models.results import BacktestResult
+from alphalab.api.models.results import BacktestResult, RobustnessResult
 from alphalab.common.types import MarketDataset, UniverseEntry
 from alphalab.data.storage.duckdb import DuckDBStorage
-from alphalab.worker.tasks import run_backtest_task
+from alphalab.worker.tasks import run_backtest_task, run_robustness_task
 
 
 @pytest.fixture
@@ -127,6 +127,87 @@ def test_backtest_task_integration_success(
     assert added_obj.sharpe is not None
     assert added_obj.max_drawdown is not None
     assert added_obj.ic is not None
+
+    # Verify session was committed
+    mock_session.commit.assert_called_once()
+
+
+@pytest.mark.integration
+@patch("alphalab.worker.tasks.async_session_maker")
+@patch("alphalab.worker.tasks.DuckDBStorage")
+@patch("alphalab.worker.tasks.NIFTY50Universe")
+def test_robustness_task_integration_success(
+    mock_run_universe_class: MagicMock,
+    mock_run_storage_class: MagicMock,
+    mock_session_maker: MagicMock,
+    temp_duckdb: DuckDBStorage,
+) -> None:
+    """Verify that run_robustness_task executes real perturbations and saves scores."""
+    # Mock storage/universe for robustness task
+    mock_run_storage_class.return_value = temp_duckdb
+
+    mock_universe = MagicMock()
+    mock_universe.get_constituents.return_value = [
+        UniverseEntry("RELIANCE.NS", "NIFTY50", date(2020, 1, 1), None),
+        UniverseEntry("TCS.NS", "NIFTY50", date(2020, 1, 1), None),
+    ]
+    mock_run_universe_class.return_value = mock_universe
+
+    # Mock PostgreSQL session
+    mock_session = AsyncMock()
+    mock_session.add = MagicMock()
+    mock_session_maker.return_value = mock_session
+    mock_session.__aenter__.return_value = mock_session
+
+    factor_id = uuid.uuid4()
+    experiment_id = uuid.uuid4()
+
+    # Pre-populate backtest result on factor to provide baseline Sharpe ratio
+    mock_backtest = BacktestResult(
+        factor_id=factor_id, sharpe=1.2, max_drawdown=0.10, ic=0.05
+    )
+
+    mock_factor = Factor(
+        id=factor_id,
+        experiment_id=experiment_id,
+        name="MOM_1",
+        formula="Momentum(1)",
+        backtest_result=mock_backtest,
+    )
+
+    mock_session.get.return_value = mock_factor
+
+    # Mock checking previous results
+    mock_executor = MagicMock()
+    mock_executor.scalar_one_or_none.return_value = None
+
+    # Mock checking experiment completion status
+    mock_factors_executor = MagicMock()
+    mock_factors_executor.scalars.return_value.all.return_value = [mock_factor]
+
+    mock_session.execute.side_effect = [mock_executor, mock_factors_executor]
+
+    # Trigger the task run
+    run_robustness_task(str(factor_id))
+
+    # Assert get factor query was made
+    assert mock_session.get.call_count == 1
+    assert mock_session.get.call_args[0] == (Factor, factor_id)
+
+    # Extract the added RobustnessResult object to verify computed values
+    added_obj = None
+    for call in mock_session.add.call_args_list:
+        obj = call[0][0]
+        if isinstance(obj, RobustnessResult):
+            added_obj = obj
+            break
+
+    assert added_obj is not None
+    assert added_obj.factor_id == factor_id
+    assert added_obj.noise_score is not None
+    assert added_obj.missing_data_score is not None
+    assert added_obj.overall_score is not None
+    assert isinstance(added_obj.failure_reasons, dict)
 
     # Verify session was committed
     mock_session.commit.assert_called_once()

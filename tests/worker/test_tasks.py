@@ -5,6 +5,7 @@ Unit tests for Celery task handlers and database result writes using mocks.
 """
 
 import uuid
+from datetime import date
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -109,7 +110,15 @@ def test_run_backtest_task_success(
 
 @pytest.mark.unit
 @patch("alphalab.worker.tasks.async_session_maker")
-def test_run_robustness_task_success(mock_session_maker: MagicMock) -> None:
+@patch("alphalab.worker.tasks.RobustnessEvaluator")
+@patch("alphalab.worker.tasks.DuckDBStorage")
+@patch("alphalab.worker.tasks.NIFTY50Universe")
+def test_run_robustness_task_success(
+    mock_universe_class: MagicMock,
+    mock_storage_class: MagicMock,
+    mock_robustness_evaluator_class: MagicMock,
+    mock_session_maker: MagicMock,
+) -> None:
     """Verify that the robustness task inserts results and updates database tables."""
     mock_session = AsyncMock()
     mock_session.add = MagicMock()
@@ -127,6 +136,25 @@ def test_run_robustness_task_success(mock_session_maker: MagicMock) -> None:
     # Mock session.get returning the mock factor
     mock_session.get.return_value = mock_factor
 
+    # Mock storage and universe
+    mock_storage = MagicMock()
+    mock_storage_class.return_value = mock_storage
+    mock_storage.get_available_date_range.return_value = (date(2023, 1, 1), date(2023, 1, 10))
+
+    mock_universe = MagicMock()
+    mock_universe_class.return_value = mock_universe
+    mock_universe.get_constituents.return_value = [MagicMock(ticker="AAPL")]
+
+    # Mock RobustnessEvaluator output
+    mock_evaluator = MagicMock()
+    mock_robustness_evaluator_class.return_value = mock_evaluator
+    mock_evaluator.run_robustness.return_value = {
+        "noise_score": 0.82,
+        "missing_data_score": 0.91,
+        "overall_score": 0.86,
+        "failure_reasons": {},
+    }
+
     # Mock checking previous results
     mock_executor = MagicMock()
     mock_executor.scalar_one_or_none.return_value = None
@@ -141,7 +169,8 @@ def test_run_robustness_task_success(mock_session_maker: MagicMock) -> None:
     run_robustness_task(str(factor_id))
 
     # Assert database operations were executed
-    mock_session.get.assert_called_with(Factor, factor_id)
+    assert mock_session.get.call_count == 1
+    assert mock_session.get.call_args[0] == (Factor, factor_id)
 
     # Verify a RobustnessResult record was added to session
     added_obj = None
