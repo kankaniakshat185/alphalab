@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
 
 export const metadata: Metadata = {
-  title: "AlphaLab - LoadLogic UI",
-  description: "Factor Research Platform",
+  title: "AlphaLab — Factor Research Platform",
+  description: "Quantitative factor research and backtesting platform",
 };
 
 export default function RootLayout({
@@ -15,12 +14,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <div className="dashboard-container">
-          <Sidebar />
-          <main className="main-content">
-            {children}
-          </main>
-        </div>
+        {children}
       </body>
     </html>
   );

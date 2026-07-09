@@ -7,7 +7,7 @@ Defines the database schema mapping for Factor Backtesting and Stress Results.
 import uuid
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON, Float, ForeignKey
+from sqlalchemy import JSON, Float, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -34,7 +34,18 @@ class BacktestResult(Base):
     turnover: Mapped[float | None] = mapped_column(Float, nullable=True)
     ic: Mapped[float | None] = mapped_column(Float, nullable=True)
     rank_ic: Mapped[float | None] = mapped_column(Float, nullable=True)
-    equity_curve: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, nullable=True)
+    equity_curve: Mapped[list[dict[str, Any]] | None] = mapped_column(
+        JSON, nullable=True
+    )
+
+    # Added columns for LLM verdicts and math breakdowns
+    verdict_sharpe: Mapped[str | None] = mapped_column(String, nullable=True)
+    verdict_ic: Mapped[str | None] = mapped_column(String, nullable=True)
+    verdict_mdd: Mapped[str | None] = mapped_column(String, nullable=True)
+    daily_mean: Mapped[float | None] = mapped_column(Float, nullable=True)
+    daily_std: Mapped[float | None] = mapped_column(Float, nullable=True)
+    mdd_peak_date: Mapped[str | None] = mapped_column(String, nullable=True)
+    mdd_trough_date: Mapped[str | None] = mapped_column(String, nullable=True)
 
     # Relationship
     factor: Mapped["Factor"] = relationship("Factor", back_populates="backtest_result")
@@ -54,7 +65,12 @@ class RobustnessResult(Base):
     missing_data_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     overall_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     failure_reasons: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
-    perturbation_grid: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, nullable=True)
+    perturbation_grid: Mapped[list[dict[str, Any]] | None] = mapped_column(
+        JSON, nullable=True
+    )
+
+    # Added columns for robustness verdict
+    verdict_robustness: Mapped[str | None] = mapped_column(String, nullable=True)
 
     # Relationship
     factor: Mapped["Factor"] = relationship(

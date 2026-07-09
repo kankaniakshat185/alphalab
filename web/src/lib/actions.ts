@@ -5,6 +5,20 @@ import { redirect } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
+function parseError(errorData: any, defaultMsg: string): string {
+  if (!errorData) return defaultMsg;
+  if (typeof errorData.detail === "string") return errorData.detail;
+  if (Array.isArray(errorData.detail)) {
+    return errorData.detail
+      .map((err: any) => {
+        const field = err.loc ? err.loc[err.loc.length - 1] : "";
+        return field ? `${field}: ${err.msg}` : err.msg;
+      })
+      .join(", ");
+  }
+  return defaultMsg;
+}
+
 export async function login(formData: FormData) {
   const email = formData.get("email");
   const password = formData.get("password");
@@ -20,11 +34,11 @@ export async function login(formData: FormData) {
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => null);
-    return { error: errorData?.detail || "Failed to login" };
+    return { error: parseError(errorData, "Failed to login") };
   }
 
   const data = await res.json();
-  
+
   // Set the HTTP-only cookie
   const cookieStore = await cookies();
   cookieStore.set("access_token", data.access_token, {
@@ -43,19 +57,19 @@ export async function register(formData: FormData) {
   const password = formData.get("password");
   const fullName = formData.get("full_name");
 
-  const res = await fetch(`${API_URL}/auth/register`, {
+  const res = await fetch(`${API_URL}/users`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       email,
       password,
-      full_name: fullName,
+      name: fullName,
     }),
   });
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => null);
-    return { error: errorData?.detail || "Failed to register" };
+    return { error: parseError(errorData, "Failed to register") };
   }
 
   // Once registered, log them in automatically
@@ -78,7 +92,7 @@ export async function getAuthToken() {
 
 export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const token = await getAuthToken();
-  
+
   const headers = new Headers(options.headers);
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);

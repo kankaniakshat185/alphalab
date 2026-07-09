@@ -31,14 +31,14 @@ class DuckDBStorage(Storage):
         self.db_path = db_path
         self._schema_manager = SchemaManager()
 
-    def _get_connection(self) -> duckdb.DuckDBPyConnection:
+    def _get_connection(self, read_only: bool = False) -> duckdb.DuckDBPyConnection:
         """Create and return a new DuckDB connection, setting operational pragmas."""
         # Ensure database directory exists
         db_dir = os.path.dirname(self.db_path)
         if db_dir:
             os.makedirs(db_dir, exist_ok=True)
 
-        conn = duckdb.connect(self.db_path)
+        conn = duckdb.connect(self.db_path, read_only=read_only)
         conn.execute(f"PRAGMA memory_limit='{settings.DUCKDB_MEMORY_LIMIT}'")
         return conn
 
@@ -117,7 +117,7 @@ class DuckDBStorage(Storage):
             f"[DataIngestion] [DuckDBStorage] Querying ohlcv data for {len(tickers)} tickers "
             f"from {start_date} to {end_date}"
         )
-        conn = self._get_connection()
+        conn = self._get_connection(read_only=True)
         try:
             placeholders = ", ".join(["?"] * len(tickers))
             query = f"""
@@ -144,7 +144,7 @@ class DuckDBStorage(Storage):
 
     def get_available_date_range(self) -> tuple[date, date]:
         """Get the minimum and maximum dates available in the OHLCV storage."""
-        conn = self._get_connection()
+        conn = self._get_connection(read_only=True)
         try:
             res = conn.execute("SELECT MIN(date), MAX(date) FROM ohlcv").fetchone()
             if not res or res[0] is None or res[1] is None:
@@ -213,7 +213,7 @@ class DuckDBStorage(Storage):
             f"[DataIngestion] [DuckDBStorage] Reading index {index_name} active constituents "
             f"between {start_date} and {end_date}"
         )
-        conn = self._get_connection()
+        conn = self._get_connection(read_only=True)
         try:
             # Query active constituents where interval overlaps [start_date, end_date]
             query = """

@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     # JWT Authentication Settings
     JWT_SECRET: str = "change_me_in_production_extremely_long_secret_key_here"
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 45
 
     # Settings configuration
     model_config = SettingsConfigDict(

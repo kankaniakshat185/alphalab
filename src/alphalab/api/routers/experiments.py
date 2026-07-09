@@ -19,6 +19,7 @@ from alphalab.api.database.connection import get_db_session
 from alphalab.api.models.experiment import Experiment
 from alphalab.api.models.factor import Factor
 from alphalab.api.models.user import User
+from alphalab.config.settings import settings
 from alphalab.worker.tasks import run_backtest_task, run_robustness_task
 
 router = APIRouter(prefix="/experiments", tags=["Experiments"])
@@ -30,6 +31,7 @@ def _get_experiment_options() -> tuple[Any, ...]:
         selectinload(Experiment.factors).selectinload(Factor.backtest_result),
         selectinload(Experiment.factors).selectinload(Factor.robustness_result),
     )
+
 
 # --- Pydantic Schemas ---
 class FactorIn(BaseModel):
@@ -113,19 +115,21 @@ async def create_experiment(
             status="COMPLETED",
             created_at=datetime.now(UTC),
         )
-        
+
         factor_records = []
         for f in exp_in.factors:
-            factor_records.append(Factor(
-                id=uuid.uuid4(),
-                experiment_id=new_exp.id,
-                name=f.name,
-                formula=f.formula,
-                created_at=datetime.now(UTC),
-                backtest_result=None,
-                robustness_result=None
-            ))
-            
+            factor_records.append(
+                Factor(
+                    id=uuid.uuid4(),
+                    experiment_id=new_exp.id,
+                    name=f.name,
+                    formula=f.formula,
+                    created_at=datetime.now(UTC),
+                    backtest_result=None,
+                    robustness_result=None,
+                )
+            )
+
         new_exp.factors = factor_records
         return new_exp
 
