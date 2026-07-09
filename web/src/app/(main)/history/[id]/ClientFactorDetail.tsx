@@ -579,6 +579,7 @@ export default function ClientFactorDetail({ detail, backtest, robustness }: Cli
       <ClientCharts
         equityCurve={backtest?.equity_curve || []}
         robustnessGrid={robustness?.grid || []}
+        stressedEquityCurve={robustness?.stressed_equity_curve || []}
         overallScore={robustness?.overall_score ?? 1.0}
       />
     </>

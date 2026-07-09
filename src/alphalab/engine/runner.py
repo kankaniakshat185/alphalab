@@ -40,7 +40,9 @@ class ExperimentRunner:
 
         # 4. Evaluate factor to generate daily raw signal series
         evaluator = FactorEvaluator(storage)
-        signals_df = evaluator.evaluate(factor_func, tickers, start_date, end_date)
+        signals_df = evaluator.evaluate(
+            factor_func, tickers, start_date, end_date, factor.formula
+        )
 
         # 5. Translate raw signals into portfolio target weights
         weights_df = PortfolioConstructor.signals_to_weights(signals_df)

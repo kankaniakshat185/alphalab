@@ -29,6 +29,7 @@ async def lifespan(app: FastAPI):
         "ALTER TABLE backtest_results ADD COLUMN IF NOT EXISTS mdd_peak_date VARCHAR;",
         "ALTER TABLE backtest_results ADD COLUMN IF NOT EXISTS mdd_trough_date VARCHAR;",
         "ALTER TABLE robustness_results ADD COLUMN IF NOT EXISTS verdict_robustness VARCHAR;",
+        "ALTER TABLE robustness_results ADD COLUMN IF NOT EXISTS stressed_equity_curve JSON;",
     ]
     try:
         async with async_engine.begin() as conn:

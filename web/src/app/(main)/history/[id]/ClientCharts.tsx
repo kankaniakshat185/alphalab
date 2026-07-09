@@ -21,6 +21,7 @@ import {
 interface ClientChartsProps {
   equityCurve: any[];
   robustnessGrid: any[];
+  stressedEquityCurve?: any[];
   overallScore?: number;
   scenarioName?: string;
 }
@@ -192,17 +193,31 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export default function ClientCharts({
   equityCurve,
   robustnessGrid,
+  stressedEquityCurve = [],
   overallScore = 0.8,
   scenarioName = "FII Selloff Scenario"
 }: ClientChartsProps) {
-  // 1. Process dataset
+  // 1. Map backend stressed equity curve values for date-aligned lookup
+  const stressedMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const item of stressedEquityCurve) {
+      if (item.date && item.cumulative_return != null) {
+        const isoDate = new Date(item.date).toISOString().split('T')[0];
+        map.set(isoDate, item.cumulative_return);
+      }
+    }
+    return map;
+  }, [stressedEquityCurve]);
+
   const formattedEquity = useMemo(() => {
-    const decayFactor = 1 - overallScore;
-    return equityCurve.map((d, idx) => {
+    return equityCurve.map((d) => {
       const baselineVal = d.cumulative_return;
-      // Generate a deterministic stressed path based on the overall robustness score
-      const pseudoRandom = Math.sin(idx * 0.4) * 0.015 - (idx * 0.0004 * decayFactor);
-      const stressedVal = Math.max(0.1, baselineVal * (1 + pseudoRandom));
+      const isoDate = new Date(d.date).toISOString().split('T')[0];
+
+      // Lookup real backend-computed stressed value, fallback to baseline if missing
+      const stressedVal = stressedMap.has(isoDate)
+        ? (stressedMap.get(isoDate) ?? baselineVal)
+        : baselineVal;
 
       return {
         ...d,
@@ -212,7 +227,7 @@ export default function ClientCharts({
         Divergence: parseFloat((stressedVal - baselineVal).toFixed(4))
       };
     });
-  }, [equityCurve, overallScore]);
+  }, [equityCurve, stressedMap]);
 
   // 2. Localized range state
   const [rangePreset, setRangePreset] = useState("Max");

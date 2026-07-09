@@ -25,7 +25,7 @@ class PandasCompiler:
 
         def execute(df: pd.DataFrame) -> pd.Series:
             result = evaluator(df)
-            if isinstance(result, (int, float)):
+            if isinstance(result, int | float):
                 # Broadcast scalar to match dataframe index if needed
                 return pd.Series(result, index=df.index)
             return result
@@ -59,24 +59,73 @@ class PandasCompiler:
 
         elif isinstance(node, FunctionCall):
             args_eval = [self._build(arg) for arg in node.arguments]
-            name = node.name
+            name_lower = node.name.lower()
 
-            if name == "Momentum":
-                # Momentum(N) -> df['Price'].pct_change(N)
-                return lambda df: df["Price"].pct_change(int(args_eval[0](df)))
-            elif name == "Volatility":
-                # Volatility(N) -> df['Price'].pct_change().rolling(N).std()
-                return lambda df: df["Price"].pct_change().rolling(int(args_eval[0](df))).std()
-            elif name == "RollingMean":
-                return lambda df: df["Price"].rolling(int(args_eval[0](df))).mean()
-            elif name == "RollingStd":
-                return lambda df: df["Price"].rolling(int(args_eval[0](df))).std()
-            elif name == "Lag":
-                # Lag(Var, Shift)
+            def get_price_series(df: pd.DataFrame) -> pd.Series:
+                col = (
+                    "close"
+                    if "close" in df.columns
+                    else ("Price" if "Price" in df.columns else df.columns[0])
+                )
+                return df[col]
+
+            if name_lower == "momentum":
+                return lambda df: get_price_series(df).pct_change(int(args_eval[0](df)))
+            elif name_lower == "volatility":
+                return (
+                    lambda df: get_price_series(df)
+                    .pct_change()
+                    .rolling(int(args_eval[0](df)))
+                    .std()
+                )
+            elif name_lower == "rollingmean":
+                return (
+                    lambda df: get_price_series(df)
+                    .rolling(int(args_eval[0](df)))
+                    .mean()
+                )
+            elif name_lower == "rollingstd":
+                return (
+                    lambda df: get_price_series(df).rolling(int(args_eval[0](df))).std()
+                )
+            elif name_lower in ("lag", "delay"):
                 return lambda df: args_eval[0](df).shift(int(args_eval[1](df)))
+            elif name_lower == "delta":
+                return lambda df: args_eval[0](df) - args_eval[0](df).shift(
+                    int(args_eval[1](df))
+                )
+            elif name_lower == "ts_max":
+                return lambda df: args_eval[0](df).rolling(int(args_eval[1](df))).max()
+            elif name_lower == "ts_min":
+                return lambda df: args_eval[0](df).rolling(int(args_eval[1](df))).min()
+            elif name_lower == "ts_rank":
+                return (
+                    lambda df: args_eval[0](df)
+                    .rolling(int(args_eval[1](df)))
+                    .rank(pct=True)
+                )
+            elif name_lower == "scale":
+
+                def scale_fn(df):
+                    val = args_eval[0](df)
+                    target = float(args_eval[1](df))
+                    abs_sum = val.abs().sum()
+                    if abs_sum == 0:
+                        return val
+                    return val * (target / abs_sum)
+
+                return scale_fn
+            elif name_lower == "correlation":
+                return (
+                    lambda df: args_eval[0](df)
+                    .rolling(int(args_eval[2](df)))
+                    .corr(args_eval[1](df))
+                )
+            elif name_lower == "rank":
+                return lambda df: args_eval[0](df)
             else:
                 raise DSLCompilationError(
-                    f"Compilation for function {name} is not implemented."
+                    f"Compilation for function {node.name} is not implemented."
                 )
 
         raise DSLCompilationError(

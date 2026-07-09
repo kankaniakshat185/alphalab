@@ -1,6 +1,7 @@
 import { getAuthToken } from "@/lib/actions";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import ClientDashboard from "./ClientDashboard";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -8,7 +9,7 @@ async function getLeaderboard() {
   const token = await getAuthToken();
   if (!token) redirect("/login");
 
-  const res = await fetch(`${API_URL}/factors/leaderboard?sort=overall_score&order=desc`, {
+  const res = await fetch(`${API_URL}/factors/leaderboard?sort=overall_score&order=desc&page_size=100`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",
   });
@@ -24,97 +25,10 @@ export default async function DashboardPage() {
   const data = await getLeaderboard();
   const factors = data.items || [];
 
-  const avgSharpe = factors.length
-    ? (factors.reduce((s: number, f: any) => s + (f.sharpe ?? 0), 0) / factors.length).toFixed(2)
-    : "—";
-
-  const robustCount = factors.filter((f: any) => f.overall_score >= 0.8).length;
-
   return (
     <>
-      {/* ─── Page header ─── */}
-      <div className="main-header">
-        <div>
-          <div className="al-tag" style={{ marginBottom: "6px" }}>DASHBOARD</div>
-          <h1 className="al-title-md">Factor Leaderboard</h1>
-        </div>
-        <div className="header-actions">
-          <div className="search-box">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-            </svg>
-            <input type="text" className="search-input" placeholder="Search factors..." />
-          </div>
-          <div className="btn-export">
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-            </svg>
-            Export
-          </div>
-          <Link href="/lab" style={{ textDecoration: "none" }}>
-            <div className="btn-add">+ New experiment</div>
-          </Link>
-        </div>
-      </div>
-
-      {/* ─── Stat strip ─── */}
-      <div className="charts-container">
-        {/* Robustness bars */}
-        <div className="chart-section">
-          <div className="chart-header">
-            <div className="chart-title">Robustness Performance</div>
-            <div className="chart-controls">
-              <div className="chart-btn">↗</div>
-            </div>
-          </div>
-          <div style={{ flex: 1, display: "flex", alignItems: "flex-end", gap: "6px" }}>
-            {(factors.length > 0 ? factors.slice(0, 12) : Array(12).fill({ overall_score: Math.random() })).map((f: any, i: number) => {
-              const h = Math.round((f.overall_score ?? Math.random()) * 100);
-              return (
-                <div
-                  key={i}
-                  style={{
-                    flex: 1,
-                    height: `${h}%`,
-                    background: h >= 80 ? "#1a1c18" : "rgba(26,28,24,0.15)",
-                    transition: "all 0.3s",
-                    minHeight: "4px",
-                  }}
-                />
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Sharpe overview */}
-        <div className="chart-section">
-          <div className="chart-header">
-            <div className="chart-title">Avg. Sharpe Ratio</div>
-            <div className="chart-controls">
-              <div className="chart-btn">⇅</div>
-            </div>
-          </div>
-          <div className="sales-number">
-            {avgSharpe}
-            <span className="sales-badge">
-              {robustCount}/{factors.length} Robust ↗
-            </span>
-          </div>
-          <div style={{ flex: 1, display: "flex", alignItems: "flex-end", gap: "16px", marginTop: "16px" }}>
-            {["Mom", "Rev", "Val"].map((label, i) => {
-              const heights = [[30, 45, 55], [20, 35, 28], [40, 22, 62]];
-              return (
-                <div key={label} style={{ flex: 1, display: "flex", flexDirection: "column", gap: "3px" }}>
-                  <div style={{ fontSize: "10px", fontWeight: 600, color: "#1a1c18", marginBottom: "4px", letterSpacing: "0.5px" }}>{label}</div>
-                  {heights[i].map((h, j) => (
-                    <div key={j} style={{ height: `${h}px`, background: j === 0 ? "#d9d9d6" : j === 1 ? "#8a9085" : "#1a1c18" }} />
-                  ))}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+      {/* ─── Client Interactive Dashboard Widgets ─── */}
+      <ClientDashboard factors={factors} />
 
       {/* ─── Experiments table ─── */}
       <div>

@@ -151,6 +151,7 @@ async def _run_robustness_async(factor_id: str) -> None:
                     failure_reasons=res["failure_reasons"],
                     perturbation_grid=res["perturbation_grid"],
                     verdict_robustness=v_robustness,
+                    stressed_equity_curve=res["stressed_equity_curve"],
                 )
                 session.add(r_res)
             else:
@@ -160,6 +161,7 @@ async def _run_robustness_async(factor_id: str) -> None:
                 r_res.failure_reasons = res["failure_reasons"]
                 r_res.perturbation_grid = res["perturbation_grid"]
                 r_res.verdict_robustness = v_robustness
+                r_res.stressed_equity_curve = res["stressed_equity_curve"]
 
             await session.flush()
             await _check_and_update_experiment_status_async(

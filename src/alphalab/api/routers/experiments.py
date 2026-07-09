@@ -62,6 +62,7 @@ class RobustnessResultOut(BaseModel):
     missing_data_score: float | None = None
     overall_score: float | None = None
     failure_reasons: dict[str, Any] | None = None
+    stressed_equity_curve: list[dict[str, Any]] | None = None
 
     model_config = {"from_attributes": True}
 

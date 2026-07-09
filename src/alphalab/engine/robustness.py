@@ -68,13 +68,16 @@ class PerturbedStorage(Storage):
         return self.base_storage.read_universe(index_name, start_date, end_date)
 
 
-def perturb_gaussian(df: pd.DataFrame, noise_level: float) -> pd.DataFrame:
+def perturb_gaussian(
+    df: pd.DataFrame, noise_level: float, seed: int = 42
+) -> pd.DataFrame:
     """
-    Add Gaussian noise to price and volume columns.
+    Add Gaussian noise to price and volume columns using a fixed local random seed.
 
     Args:
         df: DataFrame containing price records (ohlcv).
         noise_level: Noise standard deviation fraction (e.g. 0.005, 0.01, 0.02).
+        seed: Random seed for reproducibility.
 
     Returns:
         Perturbed copy of the DataFrame.
@@ -83,10 +86,11 @@ def perturb_gaussian(df: pd.DataFrame, noise_level: float) -> pd.DataFrame:
         return df.copy()
 
     perturbed_df = df.copy()
+    rng = np.random.default_rng(seed)
 
     # Draw Gaussian noise multiplier: 1 + N(0, noise_level^2)
     # Ensure same price multiplier for the same row to maintain bar logic consistency (high >= low etc.)
-    price_noise = 1.0 + np.random.normal(0.0, noise_level, size=len(perturbed_df))
+    price_noise = 1.0 + rng.normal(0.0, noise_level, size=len(perturbed_df))
 
     price_cols = ["open", "high", "low", "close", "adj_close"]
     for col in price_cols:
@@ -101,22 +105,23 @@ def perturb_gaussian(df: pd.DataFrame, noise_level: float) -> pd.DataFrame:
 
     # Volume noise is separate
     if "volume" in perturbed_df.columns:
-        volume_noise = 1.0 + np.random.normal(0.0, noise_level, size=len(perturbed_df))
+        volume_noise = 1.0 + rng.normal(0.0, noise_level, size=len(perturbed_df))
         perturbed_df["volume"] = (perturbed_df["volume"] * volume_noise).clip(lower=1.0)
 
     return perturbed_df
 
 
 def perturb_missing_data(
-    df: pd.DataFrame, drop_rate: float, chunk_size: int = 5
+    df: pd.DataFrame, drop_rate: float, chunk_size: int = 5, seed: int = 42
 ) -> pd.DataFrame:
     """
-    Drop consecutive chunks of date bars per ticker to simulate missing data.
+    Drop consecutive chunks of date bars per ticker to simulate missing data using a fixed local random seed.
 
     Args:
         df: DataFrame containing price records (ohlcv).
         drop_rate: Proportion of observations to drop (e.g. 0.05, 0.10, 0.20).
         chunk_size: Consecutive days to drop at once.
+        seed: Random seed for reproducibility.
 
     Returns:
         Perturbed copy of the DataFrame with dropped records.
@@ -124,8 +129,11 @@ def perturb_missing_data(
     if df.empty or drop_rate <= 0:
         return df.copy()
 
+    perturbed_df = df.copy()
+    rng = np.random.default_rng(seed)
+
     ticker_groups = []
-    for _, group in df.groupby("ticker"):
+    for _, group in perturbed_df.groupby("ticker"):
         n = len(group)
         if n == 0:
             ticker_groups.append(group)
@@ -143,7 +151,7 @@ def perturb_missing_data(
         for _ in range(num_chunks * 3):
             if len(indices_to_drop) >= num_to_drop:
                 break
-            start_idx = np.random.randint(0, max(1, n - actual_chunk_size))
+            start_idx = rng.integers(0, max(1, n - actual_chunk_size))
             for i in range(start_idx, min(n, start_idx + actual_chunk_size)):
                 if len(indices_to_drop) >= num_to_drop:
                     break
@@ -153,7 +161,7 @@ def perturb_missing_data(
         if remaining_needed > 0:
             available_indices = list(set(range(n)) - indices_to_drop)
             if available_indices:
-                fill_indices = np.random.choice(
+                fill_indices = rng.choice(
                     available_indices,
                     size=min(len(available_indices), remaining_needed),
                     replace=False,
@@ -212,29 +220,38 @@ class RobustnessEvaluator:
 
         # Compute baseline Sharpe if not provided
         if baseline_sharpe is None:
-            baseline_sharpe = self._run_perturbed_backtest(
-                factor_func, tickers, start_date, end_date, lambda df: df.copy()
+            baseline_sharpe, _ = self._run_perturbed_backtest(
+                factor_func,
+                tickers,
+                start_date,
+                end_date,
+                lambda df: df.copy(),
+                formula,
             )
 
         # Noise levels & Missing data levels to test
         noise_levels = [0.005, 0.01, 0.02]  # 0.5%, 1%, 2%
         missing_levels = [0.05, 0.10, 0.20]  # 5%, 10%, 20%
+        candidate_curves = []
 
         # 1. Run Noise Stress Tests
         noise_ratios = []
         perturbation_grid = []
         for level in noise_levels:
             level_sharpes = []
-            for _ in range(self.num_iterations):
+            for i in range(self.num_iterations):
                 # Run perturbed backtest
-                sharpe = self._run_perturbed_backtest(
+                sharpe, curve = self._run_perturbed_backtest(
                     factor_func,
                     tickers,
                     start_date,
                     end_date,
                     lambda df, lvl=level: perturb_gaussian(df, lvl),  # type: ignore[misc]
+                    formula,
                 )
                 level_sharpes.append(sharpe)
+                if i == 0 and curve:
+                    candidate_curves.append(curve)
             avg_level_sharpe = sum(level_sharpes) / len(level_sharpes)
 
             # Robustness ratio: Stressed Sharpe / Baseline Sharpe, clamped to [0.0, 1.0].
@@ -245,12 +262,14 @@ class RobustnessEvaluator:
             else:
                 ratio = min(1.0, max(0.0, avg_level_sharpe / baseline_sharpe))
             noise_ratios.append(ratio)
-            perturbation_grid.append({
-                "perturbation": "noise",
-                "level": level,
-                "sharpe": float(np.round(avg_level_sharpe, 4)),
-                "retention": float(np.round(ratio, 4))
-            })
+            perturbation_grid.append(
+                {
+                    "perturbation": "noise",
+                    "level": level,
+                    "sharpe": float(np.round(avg_level_sharpe, 4)),
+                    "retention": float(np.round(ratio, 4)),
+                }
+            )
 
         noise_score = sum(noise_ratios) / len(noise_ratios)
 
@@ -258,16 +277,19 @@ class RobustnessEvaluator:
         missing_ratios = []
         for level in missing_levels:
             level_sharpes = []
-            for _ in range(self.num_iterations):
+            for i in range(self.num_iterations):
                 # Run perturbed backtest
-                sharpe = self._run_perturbed_backtest(
+                sharpe, curve = self._run_perturbed_backtest(
                     factor_func,
                     tickers,
                     start_date,
                     end_date,
                     lambda df, lvl=level: perturb_missing_data(df, lvl),  # type: ignore[misc]
+                    formula,
                 )
                 level_sharpes.append(sharpe)
+                if i == 0 and curve:
+                    candidate_curves.append(curve)
             avg_level_sharpe = sum(level_sharpes) / len(level_sharpes)
 
             if baseline_sharpe <= 0.0:
@@ -275,12 +297,14 @@ class RobustnessEvaluator:
             else:
                 ratio = min(1.0, max(0.0, avg_level_sharpe / baseline_sharpe))
             missing_ratios.append(ratio)
-            perturbation_grid.append({
-                "perturbation": "missing_data",
-                "level": level,
-                "sharpe": float(np.round(avg_level_sharpe, 4)),
-                "retention": float(np.round(ratio, 4))
-            })
+            perturbation_grid.append(
+                {
+                    "perturbation": "missing_data",
+                    "level": level,
+                    "sharpe": float(np.round(avg_level_sharpe, 4)),
+                    "retention": float(np.round(ratio, 4)),
+                }
+            )
 
         missing_data_score = sum(missing_ratios) / len(missing_ratios)
 
@@ -292,13 +316,36 @@ class RobustnessEvaluator:
             noise_score, missing_data_score, overall_score, baseline_sharpe
         )
 
+        # 5. Compute the median max DD curve among candidate curves (Q3 decision)
+        median_curve = []
+        if candidate_curves:
+            candidate_curves.sort(key=self.compute_max_dd)
+            median_curve = candidate_curves[len(candidate_curves) // 2]
+
         return {
             "noise_score": float(np.round(noise_score, 4)),
             "missing_data_score": float(np.round(missing_data_score, 4)),
             "overall_score": float(np.round(overall_score, 4)),
             "failure_reasons": failure_reasons,
             "perturbation_grid": perturbation_grid,
+            "stressed_equity_curve": median_curve,
         }
+
+    @staticmethod
+    def compute_max_dd(curve: list[dict[str, Any]]) -> float:
+        """Helper to calculate max drawdown of an equity curve list of dicts."""
+        if not curve:
+            return 0.0
+        vals = [p["cumulative_return"] for p in curve]
+        peak = vals[0]
+        max_dd = 0.0
+        for v in vals:
+            if v > peak:
+                peak = v
+            dd = (peak - v) / peak if peak > 0 else 0.0
+            if dd > max_dd:
+                max_dd = dd
+        return max_dd
 
     def _run_perturbed_backtest(
         self,
@@ -307,27 +354,30 @@ class RobustnessEvaluator:
         start_date: date,
         end_date: date,
         perturb_func: Callable[[pd.DataFrame], pd.DataFrame],
-    ) -> float:
+        formula: str | None = None,
+    ) -> tuple[float, list[dict[str, Any]]]:
         """Helper to run a single backtest with a perturbed storage layer."""
         perturbed_storage = PerturbedStorage(self.base_storage, perturb_func)
         evaluator = FactorEvaluator(perturbed_storage)
 
         try:
             # 1. Evaluate factor to generate daily raw signals
-            signals_df = evaluator.evaluate(factor_func, tickers, start_date, end_date)
+            signals_df = evaluator.evaluate(
+                factor_func, tickers, start_date, end_date, formula
+            )
             if signals_df.empty:
-                return 0.0
+                return 0.0, []
 
             # 2. Construct portfolio target weights
             weights_df = PortfolioConstructor.signals_to_weights(signals_df)
             if weights_df.empty:
-                return 0.0
+                return 0.0, []
 
             # 3. Get perturbed prices for return calculations
             prices_dataset = perturbed_storage.read_ohlcv(tickers, start_date, end_date)
             prices_df = prices_dataset.data
             if prices_df.empty:
-                return 0.0
+                return 0.0, []
 
             # 4. Calculate returns and metrics
             portfolio_returns = PerformanceCalculator.compute_returns(
@@ -337,10 +387,22 @@ class RobustnessEvaluator:
                 portfolio_returns, signals_df, prices_df
             )
 
-            return metrics.get("sharpe", 0.0)
+            # Recompound returns to get the equity curve
+            cumulative_returns = (1 + portfolio_returns).cumprod()
+            equity_curve_points = [
+                {
+                    "date": dt.strftime("%Y-%m-%d")
+                    if hasattr(dt, "strftime")
+                    else str(dt),
+                    "cumulative_return": float(val),
+                }
+                for dt, val in cumulative_returns.items()
+            ]
+
+            return metrics.get("sharpe", 0.0), equity_curve_points
         except Exception as e:
             logger.warning(f"Perturbed backtest failed: {e}")
-            return 0.0
+            return 0.0, []
 
     def _generate_failure_reasons(
         self,
@@ -360,7 +422,9 @@ class RobustnessEvaluator:
                 f"Factor is not profitable at baseline (Sharpe: {baseline_sharpe:.2f}). "
                 "Robustness analysis is inconclusive."
             )
-            recommendations = ["Review factor logic for basic profitability before assessing robustness."]
+            recommendations = [
+                "Review factor logic for basic profitability before assessing robustness."
+            ]
         elif is_noise_sensitive and is_missing_sensitive:
             dominant_failure = "both"
             explanation = (
@@ -369,7 +433,7 @@ class RobustnessEvaluator:
             )
             recommendations = [
                 "Increase lookback window to smooth out daily noise.",
-                "Add explicit data imputation for missing price points."
+                "Add explicit data imputation for missing price points.",
             ]
         elif is_noise_sensitive:
             dominant_failure = "noise_sensitive"
@@ -377,14 +441,18 @@ class RobustnessEvaluator:
                 f"Factor is sensitive to pricing noise (score: {noise_score:.2f}) "
                 f"but stable under missing data (score: {missing_data_score:.2f})."
             )
-            recommendations = ["Use moving averages to smooth the raw price input before calculation."]
+            recommendations = [
+                "Use moving averages to smooth the raw price input before calculation."
+            ]
         elif is_missing_sensitive:
             dominant_failure = "missing_data_sensitive"
             explanation = (
                 f"Factor is sensitive to missing data bars (score: {missing_data_score:.2f}) "
                 f"but handles pricing noise well (score: {noise_score:.2f})."
             )
-            recommendations = ["Use forward-fill or volume-weighted interpolation for missing prices."]
+            recommendations = [
+                "Use forward-fill or volume-weighted interpolation for missing prices."
+            ]
         else:
             dominant_failure = "none"
             explanation = "Factor is highly robust to both noise and missing data."

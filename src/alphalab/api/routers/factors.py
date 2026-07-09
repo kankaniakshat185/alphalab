@@ -71,6 +71,7 @@ class RobustnessResponse(BaseModel):
     explanation: str | None = None
     recommendations: list[str] = []
     grid: list[dict[str, Any]] = []
+    stressed_equity_curve: list[dict[str, Any]] | None = None
 
 
 # --- Endpoints ---
@@ -244,4 +245,5 @@ async def get_factor_robustness(
         explanation=reasons.get("explanation"),
         recommendations=reasons.get("recommendations", []),
         grid=r_res.perturbation_grid or [],
+        stressed_equity_curve=r_res.stressed_equity_curve or [],
     )

@@ -69,8 +69,11 @@ class RobustnessResult(Base):
         JSON, nullable=True
     )
 
-    # Added columns for robustness verdict
+    # Added columns for robustness verdict and real stress testing curves
     verdict_robustness: Mapped[str | None] = mapped_column(String, nullable=True)
+    stressed_equity_curve: Mapped[list[dict[str, Any]] | None] = mapped_column(
+        JSON, nullable=True
+    )
 
     # Relationship
     factor: Mapped["Factor"] = relationship(
