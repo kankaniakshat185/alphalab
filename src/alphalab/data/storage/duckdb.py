@@ -129,11 +129,11 @@ class DuckDBStorage(Storage):
                 ORDER BY ticker, date
             """
             params = [*tickers, start_date, end_date]
-            df = conn.execute(query, params).fetchdf()
-
-            # Ensure 'date' column is cast to python datetime.date
-            if not df.empty:
-                df["date"] = pd.to_datetime(df["date"]).dt.date
+            # Use fetchall() instead of fetchdf() to avoid segfault on
+            # Python 3.13 + DuckDB 1.5 + Apple Silicon (ARM64).
+            columns = ["ticker", "date", "open", "high", "low", "close", "volume", "adj_close"]
+            rows = conn.execute(query, params).fetchall()
+            df = pd.DataFrame(rows, columns=columns)
 
             logger.debug(
                 f"[DataIngestion] [DuckDBStorage] Query returned {len(df)} price records"
@@ -225,27 +225,21 @@ class DuckDBStorage(Storage):
                 ORDER BY ticker, effective_from
             """
             params = [index_name, end_date, start_date]
-            df = conn.execute(query, params).fetchdf()
+            # Use fetchall() instead of fetchdf() to avoid segfault on
+            # Python 3.13 + DuckDB 1.5 + Apple Silicon (ARM64).
+            rows = conn.execute(query, params).fetchall()
 
-            if df.empty:
+            if not rows:
                 return []
-
-            # Format database dates to python datetime.date
-            df["effective_from"] = pd.to_datetime(df["effective_from"]).dt.date
-            df["effective_to"] = pd.to_datetime(df["effective_to"]).dt.date.where(
-                df["effective_to"].notnull(), None
-            )
 
             entries = [
                 UniverseEntry(
-                    ticker=row["ticker"],
-                    index_name=row["index_name"],
-                    effective_from=row["effective_from"],
-                    effective_to=row["effective_to"]
-                    if pd.notna(row["effective_to"])
-                    else None,
+                    ticker=row[0],
+                    index_name=row[1],
+                    effective_from=row[2],
+                    effective_to=row[3] if row[3] is not None else None,
                 )
-                for _, row in df.iterrows()
+                for row in rows
             ]
             logger.debug(
                 f"[DataIngestion] [DuckDBStorage] Query returned {len(entries)} constituent entries"

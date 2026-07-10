@@ -1,17 +1,18 @@
 # AlphaLab — Current State
 
-> **Current phase:** Phase 6 — Backend API Expansion ✅ Complete
-> **Next phase:** Phase 7 — Research Reports
-> **Last updated:** 2026-07-08
+> **Current phase:** Phase 8 — Next.js Frontend 🚧 In Progress
+> **Next phase:** Polish & Launch
+> **Last updated:** 2026-07-11
 
 ---
 
-## Phase 6 Summary
+## Phase 8 Summary (In Progress)
 
-Phase 6 expanded the FastAPI backend to expose strictly typed endpoints for the frontend application:
-1. **Factor Leaderboard (`/factors/leaderboard`)**: Implemented paginated, sortable queries against PostgreSQL for all evaluated factors.
-2. **Detail Retrieval (`/factors/{id}`, `/factors/{id}/backtest`, `/factors/{id}/robustness`)**: Implemented distinct DTOs to cleanly serve artifact data.
-3. **Structured Persistence**: Modified the `BacktestResult` and `RobustnessResult` database tables to store `equity_curve` and `perturbation_grid` as structured JSON objects, rather than recomputing them dynamically or normalizing them unnecessarily.
+Phase 8 focuses on building the Next.js frontend to interact with the backend APIs:
+1. **Factor Leaderboard & Dashboard**: Created a highly polished client dashboard displaying platform-wide "Research Grade" metrics.
+2. **Detail Retrieval**: Built the individual factor results view integrating the "Strategy Grade Rating" to evaluate specific algorithm robustness and Sharpe ratio.
+3. **Methodology & Flow**: Revamped the flow page and methodology documentation for transparent algorithmic logic, integrating a Python-syntax styling for grading algorithms.
+4. **UI Polishing**: Standardized equal-sized top navigation buttons, fixed tooltip overlay components, and cleaned up development scratch files.
 
 ---
 
@@ -23,6 +24,7 @@ Phase 6 expanded the FastAPI backend to expose strictly typed endpoints for the 
 *   `src/alphalab/engine/`: Backtesting evaluator, portfolio constructor, metrics, and robustness evaluator. (Phase 3, 5)
 *   `src/alphalab/worker/`: Celery task definitions and execution logic. (Phase 4, 5)
 *   `src/alphalab/api/`: FastAPI routes, async db connections, model schemas, token authentication, and factor endpoints. (Phase 1, 6)
+*   `web/`: Next.js frontend application. (Phase 8 - In Progress)
 *   `alembic/`: Database migration versions.
 *   `tests/`: Extensive test suite covering data, endpoints, hashing, celery, backtest/robustness calculations, and the DSL compiler.
 
@@ -36,10 +38,9 @@ Phase 6 expanded the FastAPI backend to expose strictly typed endpoints for the 
 | Component | Phase |
 |---|---|
 | Research report generator | 7 |
-| Next.js frontend | 8 |
 
 ---
 
 ## Next
 
-→ See [`docs/03_NEXT_STAGE.md`](03_NEXT_STAGE.md) for Phase 7 — Research Reports.
+→ See [`docs/03_NEXT_STAGE.md`](03_NEXT_STAGE.md) for Phase 7 — Research Reports (or remaining Phase 8 tasks).
