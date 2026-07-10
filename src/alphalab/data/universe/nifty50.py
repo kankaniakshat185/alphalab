@@ -54,26 +54,21 @@ class NIFTY50Universe(Universe):
             return []
 
         # Read CSV file
-        df = pd.read_csv(self.csv_path)
+        df = pd.read_csv(self.csv_path, engine='python')
 
         # Standardize strings and convert dates
         df["ticker"] = df["ticker"].str.strip()
         df["index_name"] = df["index_name"].str.strip()
-        df["effective_from"] = pd.to_datetime(df["effective_from"].str.strip()).dt.date
+        import datetime
+        def parse_date(x):
+            if pd.isna(x) or not str(x).strip() or str(x).strip() in ("nan", "None"):
+                return None
+            return datetime.datetime.strptime(str(x).strip()[:10], "%Y-%m-%d").date()
+            
+        df["effective_from"] = df["effective_from"].apply(parse_date)
 
         # Safely parse effective_to, mapping NaNs/empty strings to None
-        df["effective_to"] = (
-            df["effective_to"]
-            .astype(str)
-            .str.strip()
-            .replace({"nan": None, "None": None, "": None})
-        )
-        df["effective_to"] = pd.to_datetime(df["effective_to"]).dt.date.where(
-            df["effective_to"].notnull(), None
-        )
-        df["effective_to"] = df["effective_to"].apply(
-            lambda x: None if pd.isna(x) else x
-        )
+        df["effective_to"] = df["effective_to"].apply(parse_date)
 
         # Filter active constituents for index_name='NIFTY50'
         # constituent is active if: effective_from <= as_of_date and (effective_to is None or effective_to >= as_of_date)

@@ -20,9 +20,52 @@ async function getLeaderboard() {
   return res.json();
 }
 
+
+const ROBUSTNESS_THRESHOLD = 0.8;
+
+function formatDateNeutral(dateStr: string): string {
+  const d = new Date(dateStr);
+  const day = d.getUTCDate();
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const month = months[d.getUTCMonth()];
+  const hours = String(d.getUTCHours()).padStart(2, "0");
+  const minutes = String(d.getUTCMinutes()).padStart(2, "0");
+  return `${day} ${month} at ${hours}:${minutes}`;
+}
+
 export default async function HistoryPage() {
   const data = await getLeaderboard();
   const factors = data.items || [];
+
+  const discoveriesFeed = (() => {
+    const events: { id: string; text: string; time: string; status: string }[] = [];
+    const sorted = [...factors].sort(
+      (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+    for (const f of sorted.slice(0, 4)) {
+      const timeStr = formatDateNeutral(f.created_at);
+
+      events.push({
+        id: `${f.id}-created`,
+        text: `Factor expression "${f.name}" generated`,
+        time: timeStr,
+        status: "created",
+      });
+
+      if (f.overall_score !== null) {
+        const isPassed = f.overall_score >= ROBUSTNESS_THRESHOLD;
+        events.push({
+          id: `${f.id}-evaluated`,
+          text: `Robustness verification ${isPassed ? "PASSED" : "FAILED"} for ${f.name}`,
+          time: timeStr,
+          status: isPassed ? "passed" : "failed",
+        });
+      }
+    }
+    return events;
+  })();
+
 
   return (
     <>
@@ -38,7 +81,76 @@ export default async function HistoryPage() {
         </Link>
       </div>
 
+      
+      <div style={{ marginBottom: "60px", marginTop: "40px" }}>
+        <span style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: "11px",
+          letterSpacing: "2px",
+          color: "var(--ink-faint)",
+          marginBottom: "8px",
+          display: "block",
+          fontWeight: 600,
+        }}>
+          EVENT STREAM
+        </span>
+        <h2 style={{
+          fontFamily: "var(--font-serif)",
+          fontSize: "24px",
+          fontWeight: 500,
+          color: "var(--ink)",
+          marginBottom: "24px",
+        }}>
+          Recent Research Activity
+        </h2>
+
+        {discoveriesFeed.length === 0 ? (
+          <div style={{ fontSize: "12px", color: "var(--ink-faint)", padding: "20px 0" }}>
+            No recent discoveries.
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "14px", maxWidth: "600px" }}>
+            {discoveriesFeed.map((ev: any) => (
+              <div key={ev.id} style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "16px",
+                fontSize: "12px",
+                borderLeft: "2px solid var(--border-soft)",
+                paddingLeft: "16px",
+                marginLeft: "8px",
+              }}>
+                <span style={{
+                  width: "8px",
+                  height: "8px",
+                  borderRadius: "50%",
+                  background: ev.status === "passed" ? "var(--green)" : ev.status === "failed" ? "var(--red)" : "var(--ink-faint)",
+                  marginLeft: "-21px",
+                  border: "2px solid var(--cream)",
+                }} />
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontWeight: 600, color: "var(--ink)" }}>{ev.text}</span>
+                  <span style={{ color: "var(--ink-faint)", fontSize: "11px", marginLeft: "12px" }}>{ev.time}</span>
+                </div>
+                <span style={{
+                  padding: "1px 6px",
+                  fontSize: "8px",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  color: ev.status === "passed" ? "var(--green)" : ev.status === "failed" ? "var(--red)" : "var(--ink-light)",
+                  background: ev.status === "passed" ? "#f0fdf4" : ev.status === "failed" ? "#fef2f2" : "#f5f5f3",
+                  border: `1px solid ${ev.status === "passed" ? "#dcfce7" : ev.status === "failed" ? "#fee2e2" : "#ddddd9"}`,
+                }}>
+                  {ev.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Table header strip */}
+
       <div style={{ border: "1px solid #1a1c18", borderBottom: "none", background: "#fbfbfa" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 120px 120px", padding: "10px 16px", gap: "16px" }}>
           <span className="al-tag">Factor</span>

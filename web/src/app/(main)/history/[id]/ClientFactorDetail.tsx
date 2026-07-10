@@ -134,6 +134,16 @@ export default function ClientFactorDetail({ detail, backtest, robustness }: Cli
     };
   }, [metrics.sharpe, robustness]);
 
+  // ─── STRATEGY GRADE ───
+  const gradeData = useMemo(() => {
+    const s = metrics.sharpe || 0.0;
+    const r = robustness?.overall_score || 0.0;
+    if (r >= 0.8 && s >= 1.0) return { grade: "A", color: "#0f766e", verdict: "Passes strict institutional thresholds.", full: "Institutional (A)" };
+    if (r >= 0.8 && s >= 0.5) return { grade: "B", color: "#3b82f6", verdict: "Solid performance, acceptable for deployment.", full: "Professional (B)" };
+    if (r >= 0.8) return { grade: "C", color: "#fbbf24", verdict: "Robust, but weak risk-adjusted returns.", full: "Development (C)" };
+    return { grade: "D", color: "#b91c1c", verdict: "Failed robustness stress tests. High overfit risk.", full: "Rejected (D)" };
+  }, [metrics.sharpe, robustness]);
+
   const cards = [
     {
       id: "sharpe",
@@ -174,26 +184,40 @@ export default function ClientFactorDetail({ detail, backtest, robustness }: Cli
       desc: "Ratio of performance retained under synthetic stress tests.",
       verdict: detail.verdict_robustness,
       isWarning: (robustness?.overall_score ?? 0) < 0.80
+    },
+    {
+      id: "grade",
+      label: "Strategy Grade",
+      value: gradeData.grade,
+      color: gradeData.color,
+      formula: `Score: ${gradeData.full}`,
+      desc: "Holistic grading of individual factor maturity.",
+      verdict: gradeData.verdict,
+      isWarning: gradeData.grade === "D"
     }
   ];
 
   return (
     <>
       {/* ─── Metric tiles ─── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", border: "1px solid #1a1c18", marginBottom: "32px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", marginBottom: "32px", marginLeft: "1px" }}>
         {cards.map((m, i, arr) => (
           <div
             key={m.label}
             onClick={() => setActiveModal(m.id as any)}
             style={{
               padding: "20px 24px",
-              borderRight: i < arr.length - 1 ? "1px solid #1a1c18" : "none",
+              borderTop: "1px solid #1a1c18",
+              borderBottom: "1px solid #1a1c18",
+              borderLeft: i === 0 ? "1px solid #1a1c18" : "none",
+              borderRight: "1px solid #1a1c18",
+              marginLeft: i === 0 ? 0 : "-1px",
               background: "#fff",
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between",
               cursor: "pointer",
-              transition: "background 0.15s, transform 0.1s",
+              transition: "transform 0.15s, box-shadow 0.15s, background 0.15s",
             }}
             className="hover-card-style"
           >
@@ -229,9 +253,13 @@ export default function ClientFactorDetail({ detail, backtest, robustness }: Cli
       </div>
 
       <style>{`
-        .hover-card-style:hover {
-          background: #fbfbfa !important;
-          transform: translateY(-2px);
+        .hover-card-style { position: relative; }
+        .hover-card-style:hover { 
+          z-index: 10; 
+          box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+          background: #fff !important;
+          transform: translateY(-3px);
+          border-left: 1px solid #1a1c18 !important;
         }
         .modal-overlay {
           position: fixed;
@@ -518,32 +546,37 @@ export default function ClientFactorDetail({ detail, backtest, robustness }: Cli
               background: isFailed ? "#fef2f2" : "#f0fdf4",
               padding: "24px",
               marginBottom: "32px",
+              display: "grid", 
+              gridTemplateColumns: "2fr 1fr", 
+              gap: "28px", 
+              alignItems: "stretch"
             }}>
-              <div style={{
-                fontSize: "11px",
-                fontWeight: 700,
-                letterSpacing: "1.5px",
-                textTransform: "uppercase",
-                color: isFailed ? "#b91c1c" : "#0f766e",
-                marginBottom: "8px"
-              }}>
-                {isFailed ? "Robustness Check: Failed" : "Robustness Check: Passed"}
-              </div>
-              <div style={{
-                fontFamily: "var(--font-serif)",
-                fontSize: "20px",
-                color: isFailed ? "#7f1d1d" : "#064e3b",
-                marginBottom: "12px",
-                fontWeight: 600
-              }}>
-                {isFailed ? domFailure : "Highly Robust Factor"}
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "28px", alignItems: "start" }}>
-                <div>
-                  <p style={{ fontSize: "13px", color: isFailed ? "#7f1d1d" : "#064e3b", lineHeight: 1.6, margin: 0 }}>
-                    {isFailed ? explanation : "The factor's predictive premium survives synthetic market perturbations. Daily price feeds were stressed with Gaussian noise and randomly dropped bars to simulate data feed micro-outages."}
-                  </p>
+              
+              {/* Left Column: Header + Description + Recommendations */}
+              <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                <div style={{
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  letterSpacing: "1.5px",
+                  textTransform: "uppercase",
+                  color: isFailed ? "#b91c1c" : "#0f766e",
+                  marginBottom: "8px"
+                }}>
+                  {isFailed ? "Robustness Check: Failed" : "Robustness Check: Passed"}
+                </div>
+                <div style={{
+                  fontFamily: "var(--font-serif)",
+                  fontSize: "20px",
+                  color: isFailed ? "#7f1d1d" : "#064e3b",
+                  marginBottom: "12px",
+                  fontWeight: 600
+                }}>
+                  {isFailed ? domFailure : "Highly Robust Factor"}
+                </div>
+                
+                <p style={{ fontSize: "13px", color: isFailed ? "#7f1d1d" : "#064e3b", lineHeight: 1.6, margin: 0 }}>
+                  {isFailed ? explanation : "The factor's predictive premium survives synthetic market perturbations. Daily price feeds were stressed with Gaussian noise and randomly dropped bars to simulate data feed micro-outages."}
+                </p>
 
                   {isFailed && recommendations.length > 0 && (
                     <div style={{ marginTop: "16px" }}>
@@ -557,7 +590,10 @@ export default function ClientFactorDetail({ detail, backtest, robustness }: Cli
 
                 <div style={{
                   borderLeft: isFailed ? "1px dashed rgba(185, 28, 28, 0.2)" : "1px dashed rgba(15, 118, 110, 0.2)",
-                  paddingLeft: "24px"
+                  paddingLeft: "24px",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center"
                 }}>
                   <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", color: isFailed ? "#b91c1c" : "#0f766e", marginBottom: "4px" }}>
                     Evaluation Model
@@ -570,7 +606,6 @@ export default function ClientFactorDetail({ detail, backtest, robustness }: Cli
                   </div>
                 </div>
               </div>
-            </div>
           );
         })()
       )}

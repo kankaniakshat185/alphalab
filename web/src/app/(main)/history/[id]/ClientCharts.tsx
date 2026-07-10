@@ -40,6 +40,13 @@ const findClosestDateStr = (targetIsoDate: string, data: any[]) => {
       closestItem = item;
     }
   }
+  
+  // Only return if the closest data point is within 14 days of the target event
+  // This prevents future events from clamping to the last available day of the dataset
+  if (minDiff > 14 * 24 * 60 * 60 * 1000) {
+    return ""; 
+  }
+
   return new Date(closestItem.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" });
 };
 
@@ -290,6 +297,11 @@ export default function ClientCharts({
     }));
   }, [robustnessGrid]);
 
+  const isDateVisible = (dateStr: string) => {
+    if (!activeDataSlice || activeDataSlice.length === 0) return false;
+    return activeDataSlice.some(d => d.dateStr === dateStr);
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "32px", width: "100%" }}>
 
@@ -307,10 +319,10 @@ export default function ClientCharts({
           <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--ink)" }}>
             B: {stats.baselineLatest.toFixed(3)} / <span style={{ color: "#b91c1c" }}>S: {stats.stressedLatest.toFixed(3)}</span>
           </div>
-          <div style={{ fontSize: "10px", color: "var(--ink-faint)", marginTop: "2px", lineHeight: 1.4 }}>
+          <div style={{ fontSize: "11px", color: "var(--ink-faint)", marginTop: "2px", lineHeight: 1.4 }}>
             Cumulative performance at slice end.
           </div>
-          <div style={{ fontSize: "9px", color: "var(--ink-light)", marginTop: "4px", lineHeight: 1.3 }}>
+          <div style={{ fontSize: "10.5px", color: "var(--ink-light)", marginTop: "4px", lineHeight: 1.3 }}>
             Reflects the final index level achieved for each series; the gap represents total performance difference.
           </div>
         </div>
@@ -320,10 +332,10 @@ export default function ClientCharts({
           <div style={{ fontSize: "16px", fontWeight: 600, color: "#b91c1c" }}>
             {(stats.stressedMaxDrawdown * 100).toFixed(2)}%
           </div>
-          <div style={{ fontSize: "10px", color: "var(--ink-faint)", marginTop: "2px", lineHeight: 1.4 }}>
+          <div style={{ fontSize: "11px", color: "var(--ink-faint)", marginTop: "2px", lineHeight: 1.4 }}>
             Peak-to-trough stress decline.
           </div>
-          <div style={{ fontSize: "9px", color: "var(--ink-light)", marginTop: "4px", lineHeight: 1.3 }}>
+          <div style={{ fontSize: "10.5px", color: "var(--ink-light)", marginTop: "4px", lineHeight: 1.3 }}>
             The worst peak-to-trough decline for the Stressed series in the selected date range.
           </div>
         </div>
@@ -333,15 +345,20 @@ export default function ClientCharts({
           <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--ink)" }}>
             B: {stats.baselineSharpe.toFixed(2)} / <span style={{ color: "#b91c1c" }}>S: {stats.stressedSharpe.toFixed(2)}</span>
           </div>
-          <div style={{ fontSize: "10px", color: "var(--ink-faint)", marginTop: "2px", lineHeight: 1.4 }}>
+          <div style={{ fontSize: "11px", color: "var(--ink-faint)", marginTop: "2px", lineHeight: 1.4 }}>
             Annualized daily ratio (√252 factor).
           </div>
-          <div style={{ fontSize: "9px", color: "var(--ink-light)", marginTop: "4px", lineHeight: 1.3 }}>
+          <div style={{ fontSize: "10.5px", color: "var(--ink-light)", marginTop: "4px", lineHeight: 1.3 }}>
             Uses the standard daily √252 annualization; the gap quantifies the risk-adjusted cost of this stress scenario.
           </div>
         </div>
 
+        <style>{`
+          .max-div-hover { cursor: pointer; }
+          .max-div-hover:hover * { color: #000000 !important; font-weight: 500 !important; }
+        `}</style>
         <div
+          className="max-div-hover"
           onClick={() => {
             if (highlightDate === stats.maxDivergenceDate) {
               setHighlightDate(null);
@@ -349,8 +366,6 @@ export default function ClientCharts({
               setHighlightDate(stats.maxDivergenceDate);
             }
           }}
-          style={{ cursor: "pointer" }}
-          className="hover-card-style"
         >
           <div className="al-tag" style={{ marginBottom: "6px", display: "flex", justifyContent: "space-between" }}>
             <span>Max Divergence</span>
@@ -361,10 +376,10 @@ export default function ClientCharts({
           <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--ink)" }}>
             {stats.maxDivergenceVal.toFixed(3)}
           </div>
-          <div style={{ fontSize: "10px", color: "var(--ink-faint)", marginTop: "2px", lineHeight: 1.4 }}>
+          <div style={{ fontSize: "11px", color: "var(--ink-faint)", marginTop: "2px", lineHeight: 1.4, transition: "color 0.1s" }}>
             Widest point on {stats.maxDivergenceDate}.
           </div>
-          <div style={{ fontSize: "9px", color: "var(--ink-light)", marginTop: "4px", lineHeight: 1.3 }}>
+          <div style={{ fontSize: "10.5px", color: "var(--ink-light)", marginTop: "4px", lineHeight: 1.3, transition: "color 0.1s" }}>
             Date and absolute size of the largest gap between the lines. Click stat to highlight this point below.
           </div>
         </div>
@@ -412,19 +427,19 @@ export default function ClientCharts({
                 <Legend verticalAlign="top" height={36} iconType="plainline" wrapperStyle={{ fontSize: "11px", letterSpacing: "0.5px" }} />
 
                 {/* Historical events overlay annotations */}
-                {refDates.covidCrash && (
+                {refDates.covidCrash && isDateVisible(refDates.covidCrash) && (
                   <ReferenceLine x={refDates.covidCrash} stroke="#b91c1c" strokeDasharray="3 3" label={{ value: "COVID Crash", fill: "#b91c1c", fontSize: 9, position: "top" }} />
                 )}
-                {refDates.fiiSelloff && (
-                  <ReferenceLine x={refDates.fiiSelloff} stroke="#b91c1c" strokeDasharray="3 3" label={{ value: "FII Selloff (Fed tightening)", fill: "#b91c1c", fontSize: 9, position: "top" }} />
+                {refDates.fiiSelloff && isDateVisible(refDates.fiiSelloff) && (
+                  <ReferenceLine x={refDates.fiiSelloff} stroke="#b91c1c" strokeDasharray="3 3" label={{ value: "FII Selloff", fill: "#b91c1c", fontSize: 9, position: "insideBottomLeft" }} />
                 )}
-                {refDates.adaniHindenburg && (
+                {refDates.adaniHindenburg && isDateVisible(refDates.adaniHindenburg) && (
                   <ReferenceLine x={refDates.adaniHindenburg} stroke="#b91c1c" strokeDasharray="3 3" label={{ value: "Adani-Hindenburg", fill: "#b91c1c", fontSize: 9, position: "top" }} />
                 )}
-                {refDates.lokSabhaCrash && (
-                  <ReferenceLine x={refDates.lokSabhaCrash} stroke="#b91c1c" strokeDasharray="3 3" label={{ value: "Elections Crash", fill: "#b91c1c", fontSize: 9, position: "top" }} />
+                {refDates.lokSabhaCrash && isDateVisible(refDates.lokSabhaCrash) && (
+                  <ReferenceLine x={refDates.lokSabhaCrash} stroke="#b91c1c" strokeDasharray="3 3" label={{ value: "Elections Crash", fill: "#b91c1c", fontSize: 9, position: "insideBottomLeft" }} />
                 )}
-                {highlightDate && (
+                {highlightDate && isDateVisible(highlightDate) && (
                   <ReferenceLine x={highlightDate} stroke="#d97706" strokeWidth={2} strokeDasharray="4 4" label={{ value: "Max Divergence Pt", fill: "#d97706", fontSize: 9, position: "top" }} />
                 )}
 
