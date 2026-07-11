@@ -3,6 +3,7 @@ import os
 import re
 
 import httpx
+from typing import Any
 
 logger = logging.getLogger("alphalab.worker.verdicts")
 
@@ -11,7 +12,7 @@ MAX_WORDS = 20
 MAX_CHARACTERS = 120
 
 
-def _get_api_key():
+def _get_api_key() -> tuple[str | None, str | None]:
     gemini_key = os.getenv("GEMINI_API_KEY")
     openai_key = os.getenv("OPENAI_API_KEY")
     return gemini_key, openai_key
@@ -45,7 +46,7 @@ def call_llm(prompt: str) -> str | None:
         if gemini_key:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
             headers = {"Content-Type": "application/json"}
-            payload = {
+            payload: dict[str, Any] = {
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {"temperature": 0.1, "maxOutputTokens": 60},
             }
@@ -66,7 +67,7 @@ def call_llm(prompt: str) -> str | None:
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {openai_key}",
             }
-            payload = {
+            payload: dict[str, Any] = {
                 "model": "gpt-4o-mini",
                 "messages": [{"role": "user", "content": prompt}],
                 "temperature": 0.1,
@@ -165,7 +166,7 @@ def get_robustness_verdict(
     overall_score: float,
     baseline_sharpe: float,
     stressed_sharpe_avg: float,
-    failure_reasons: dict | None,
+    failure_reasons: dict[str, Any] | None,
 ) -> str:
     """Generate Robustness Score verdict with rule-based fallback."""
     if overall_score < 0.80:

@@ -5,6 +5,7 @@ import uuid
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from typing import Any
 
 from alphalab.api.database.connection import async_session_maker
 from alphalab.api.models.experiment import Experiment
@@ -192,7 +193,7 @@ async def _run_robustness_async(factor_id: str) -> None:
 _LOOP = None
 
 
-def _run_coroutine_safely(coro):
+def _run_coroutine_safely(coro: Any) -> Any:
     global _LOOP
     if _LOOP is None or _LOOP.is_closed():
         _LOOP = asyncio.new_event_loop()

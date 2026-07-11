@@ -151,7 +151,7 @@ def perturb_missing_data(
         for _ in range(num_chunks * 3):
             if len(indices_to_drop) >= num_to_drop:
                 break
-            start_idx = rng.integers(0, max(1, n - actual_chunk_size))
+            start_idx = int(rng.integers(0, max(1, n - actual_chunk_size)))
             for i in range(start_idx, min(n, start_idx + actual_chunk_size)):
                 if len(indices_to_drop) >= num_to_drop:
                     break

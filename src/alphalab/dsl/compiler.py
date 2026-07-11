@@ -106,7 +106,7 @@ class PandasCompiler:
                 )
             elif name_lower == "scale":
 
-                def scale_fn(df):
+                def scale_fn(df: Any) -> Any:
                     val = args_eval[0](df)
                     target = float(args_eval[1](df))
                     abs_sum = val.abs().sum()

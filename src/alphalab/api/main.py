@@ -5,6 +5,7 @@ Main entrypoint assembling the FastAPI web service application.
 """
 
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,7 +19,7 @@ from alphalab.api.routers.users import router as users_router
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> Any:
     # Auto-migrate: run queries to add missing columns in PostgreSQL if they don't exist
     queries = [
         "ALTER TABLE backtest_results ADD COLUMN IF NOT EXISTS verdict_sharpe VARCHAR;",

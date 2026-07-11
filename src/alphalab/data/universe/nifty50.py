@@ -60,7 +60,8 @@ class NIFTY50Universe(Universe):
         df["ticker"] = df["ticker"].str.strip()
         df["index_name"] = df["index_name"].str.strip()
         import datetime
-        def parse_date(x):
+        from typing import Any
+        def parse_date(x: Any) -> datetime.date | None:
             if pd.isna(x) or not str(x).strip() or str(x).strip() in ("nan", "None"):
                 return None
             return datetime.datetime.strptime(str(x).strip()[:10], "%Y-%m-%d").date()
