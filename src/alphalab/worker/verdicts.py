@@ -67,7 +67,7 @@ def call_llm(prompt: str) -> str | None:
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {openai_key}",
             }
-            payload: dict[str, Any] = {
+            payload = {
                 "model": "gpt-4o-mini",
                 "messages": [{"role": "user", "content": prompt}],
                 "temperature": 0.1,
