@@ -96,15 +96,11 @@ def test_backtest_task_integration_success(
 
     mock_session.get.return_value = mock_factor
 
-    # Mock checking previous results (None)
+    # Mock database queries (duplicates and completion counts)
     mock_executor = MagicMock()
     mock_executor.scalar_one_or_none.return_value = None
-
-    # Mock checking experiment completion status (returns mock factor)
-    mock_factors_executor = MagicMock()
-    mock_factors_executor.scalars.return_value.all.return_value = [mock_factor]
-
-    mock_session.execute.side_effect = [mock_executor, mock_factors_executor]
+    mock_executor.scalar.return_value = 1
+    mock_session.execute.return_value = mock_executor
 
     # 4. Trigger the task run
     run_backtest_task(str(factor_id))
@@ -177,15 +173,11 @@ def test_robustness_task_integration_success(
 
     mock_session.get.return_value = mock_factor
 
-    # Mock checking previous results
+    # Mock checking previous results and completion counts
     mock_executor = MagicMock()
     mock_executor.scalar_one_or_none.return_value = None
-
-    # Mock checking experiment completion status
-    mock_factors_executor = MagicMock()
-    mock_factors_executor.scalars.return_value.all.return_value = [mock_factor]
-
-    mock_session.execute.side_effect = [mock_executor, mock_factors_executor]
+    mock_executor.scalar.return_value = 1
+    mock_session.execute.return_value = mock_executor
 
     # Trigger the task run
     run_robustness_task(str(factor_id))

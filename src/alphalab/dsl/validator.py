@@ -27,7 +27,7 @@ class StaticValidator:
             self._validate_function(node)
             for arg in node.arguments:
                 self._visit(arg)
-        elif isinstance(node, (NumberLiteral, Variable)):
+        elif isinstance(node, NumberLiteral | Variable):
             pass
         else:
             raise DSLCompilationError(f"Unknown AST node type: {type(node).__name__}")
@@ -44,28 +44,68 @@ class StaticValidator:
             )
 
         # Specific validations for look-ahead bias and correct literal usage
-        if node.name == "Lag":
-            if len(node.arguments) >= 2 and isinstance(node.arguments[1], NumberLiteral):
-                shift = node.arguments[1].value
-                if shift < 0:
+        name_lower = node.name.lower()
+
+        if name_lower in ("lag", "delay") and len(node.arguments) >= 2:
+            arg = node.arguments[1]
+            if isinstance(arg, NumberLiteral):
+                val = arg.value
+                if val < 0:
                     raise DataLeakageError(
-                        f"Temporal look-ahead bias detected in {node.name}: negative shift ({shift})"
+                        f"Temporal look-ahead bias detected in {node.name}: negative shift ({val})"
                     )
-                if not shift.is_integer():
+                if not val.is_integer():
                     raise DSLCompilationError(
-                        f"Shift size for {node.name} must be an integer, got {shift}"
+                        f"Shift size for {node.name} must be an integer, got {val}"
+                    )
+        elif name_lower == "delta" and len(node.arguments) >= 2:
+            arg = node.arguments[1]
+            if isinstance(arg, NumberLiteral):
+                val = arg.value
+                if val <= 0:
+                    raise DataLeakageError(
+                        f"Invalid window/shift size for {node.name}: {val} (must be > 0)"
+                    )
+                if not val.is_integer():
+                    raise DSLCompilationError(
+                        f"Window/shift size for {node.name} must be an integer, got {val}"
+                    )
+        elif name_lower in ("ts_max", "ts_min", "ts_rank") and len(node.arguments) >= 2:
+            arg = node.arguments[1]
+            if isinstance(arg, NumberLiteral):
+                val = arg.value
+                if val <= 0:
+                    raise DataLeakageError(
+                        f"Invalid window size for {node.name}: {val} (must be > 0)"
+                    )
+                if not val.is_integer():
+                    raise DSLCompilationError(
+                        f"Window size for {node.name} must be an integer, got {val}"
+                    )
+        elif name_lower == "correlation" and len(node.arguments) >= 3:
+            arg = node.arguments[2]
+            if isinstance(arg, NumberLiteral):
+                val = arg.value
+                if val <= 0:
+                    raise DataLeakageError(
+                        f"Invalid window size for {node.name}: {val} (must be > 0)"
+                    )
+                if not val.is_integer():
+                    raise DSLCompilationError(
+                        f"Window size for {node.name} must be an integer, got {val}"
                     )
         elif (
-            node.name in ("Momentum", "Volatility", "RollingMean", "RollingStd")
+            name_lower in ("momentum", "volatility", "rollingmean", "rollingstd")
             and len(node.arguments) >= 1
-            and isinstance(node.arguments[0], NumberLiteral)
         ):
-                window = node.arguments[0].value
-                if window <= 0:
+            arg = node.arguments[0]
+            if isinstance(arg, NumberLiteral):
+                val = arg.value
+                if val <= 0:
                     raise DataLeakageError(
-                        f"Invalid window size for {node.name}: {window} (must be > 0)"
+                        f"Invalid window size for {node.name}: {val} (must be > 0)"
                     )
-                if not window.is_integer():
+                if not val.is_integer():
                     raise DSLCompilationError(
-                        f"Window size for {node.name} must be an integer, got {window}"
+                        f"Window size for {node.name} must be an integer, got {val}"
                     )

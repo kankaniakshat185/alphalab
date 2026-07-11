@@ -25,6 +25,7 @@ class FactorEvaluator:
         tickers: list[str],
         start_date: date,
         end_date: date,
+        formula: str | None = None,
     ) -> pd.DataFrame:
         """
         Evaluate the factor function across historical data for the given tickers.
@@ -34,6 +35,7 @@ class FactorEvaluator:
             tickers: List of target tickers to evaluate.
             start_date: Historical start date.
             end_date: Historical end date.
+            formula: Optional DSL formula string to apply pass-2 cross-sectional processing.
 
         Returns:
             DataFrame containing raw alpha signals with columns ['date', 'ticker', 'signal'].
@@ -45,31 +47,58 @@ class FactorEvaluator:
         if df.empty:
             raise DataError(f"No OHLCV data found between {start_date} and {end_date}")
 
-        # Map standard storage columns to DSL expected identifiers (Capitalized)
-        df = df.rename(columns={
-            "adj_close": "Price",
-            "volume": "Volume",
-            "open": "Open",
-            "high": "High",
-            "low": "Low"
-        })
+        # Map adj_close to close, drop raw unadjusted close if present to avoid name conflict
+        if "adj_close" in df.columns:
+            if "close" in df.columns:
+                df = df.drop(columns=["close"])
+            df = df.rename(columns={"adj_close": "close"})
 
-        # Sort by date for chronological rolling window evaluation
+        # Sort by date for chronological rolling window evaluation and compute returns
         df = df.sort_values(by=["ticker", "date"]).reset_index(drop=True)
+        df["returns"] = df.groupby("ticker")["close"].pct_change()
+
+        # Add capitalized aliases for backward compatibility with older formulas
+        df["Price"] = df["close"]
+        df["Volume"] = df["volume"]
+        df["Open"] = df["open"]
+        df["High"] = df["high"]
+        df["Low"] = df["low"]
 
         # Apply factor function per ticker safely to avoid data leakage
         def apply_factor(group: pd.DataFrame) -> pd.DataFrame:
             signal = factor_func(group)
-            return pd.DataFrame({
-                "date": group["date"],
-                "ticker": group.name,
-                "signal": signal.values
-            })
+            return pd.DataFrame(
+                {"date": group["date"], "ticker": group.name, "signal": signal.values}
+            )
 
         # include_groups=False silences Pandas 2.2+ FutureWarnings
-        result_df = df.groupby("ticker", group_keys=False).apply(apply_factor, include_groups=False)
+        result_df = df.groupby("ticker", group_keys=False).apply(
+            apply_factor, include_groups=False
+        )
 
         # Drop rows where signal is NaN (e.g. from rolling windows/lags)
         result_df = result_df.dropna(subset=["signal"]).reset_index(drop=True)
 
+        # Apply cross-sectional rank pass if specified in the formula
+        if formula and "rank(" in formula.lower().replace(" ", ""):
+            result_df = CrossSectionalProcessor.rank(result_df)
+
         return result_df
+
+
+class CrossSectionalProcessor:
+    """Processor to apply cross-sectional transformations to evaluated factor data."""
+
+    @staticmethod
+    def rank(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Rank signals cross-sectionally for each date.
+        Normalizes ranks to percentiles in [0.0, 1.0].
+        """
+        if df.empty or "signal" not in df.columns:
+            return df
+
+        # Copy dataframe and apply cross-sectional percentile rank grouped by date
+        df_copy = df.copy()
+        df_copy["signal"] = df_copy.groupby("date")["signal"].rank(pct=True)
+        return df_copy

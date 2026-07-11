@@ -26,7 +26,8 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str = "postgres_local_password_change_me"
     POSTGRES_DB: str = "alphalab"
     POSTGRES_HOST: str = "localhost"
-    POSTGRES_PORT: int = 5432
+    # Local Dev / UI Iteration Mode
+    MOCK_MODE: bool = False
 
     # Async Database URL
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres_local_password_change_me@localhost:5432/alphalab"
@@ -37,7 +38,7 @@ class Settings(BaseSettings):
     # JWT Authentication Settings
     JWT_SECRET: str = "change_me_in_production_extremely_long_secret_key_here"
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 45
 
     # Settings configuration
     model_config = SettingsConfigDict(

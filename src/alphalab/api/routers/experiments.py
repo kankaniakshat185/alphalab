@@ -19,6 +19,7 @@ from alphalab.api.database.connection import get_db_session
 from alphalab.api.models.experiment import Experiment
 from alphalab.api.models.factor import Factor
 from alphalab.api.models.user import User
+from alphalab.config.settings import settings
 from alphalab.worker.tasks import run_backtest_task, run_robustness_task
 
 router = APIRouter(prefix="/experiments", tags=["Experiments"])
@@ -30,6 +31,7 @@ def _get_experiment_options() -> tuple[Any, ...]:
         selectinload(Experiment.factors).selectinload(Factor.backtest_result),
         selectinload(Experiment.factors).selectinload(Factor.robustness_result),
     )
+
 
 # --- Pydantic Schemas ---
 class FactorIn(BaseModel):
@@ -60,6 +62,7 @@ class RobustnessResultOut(BaseModel):
     missing_data_score: float | None = None
     overall_score: float | None = None
     failure_reasons: dict[str, Any] | None = None
+    stressed_equity_curve: list[dict[str, Any]] | None = None
 
     model_config = {"from_attributes": True}
 
@@ -103,6 +106,34 @@ async def create_experiment(
     Returns:
         The generated Experiment record.
     """
+    if settings.MOCK_MODE:
+        # MOCK RESPONSE FOR UI ITERATION
+        new_exp = Experiment(
+            id=uuid.uuid4(),
+            user_id=current_user.id,
+            name=exp_in.name,
+            description=exp_in.description,
+            status="COMPLETED",
+            created_at=datetime.now(UTC),
+        )
+
+        factor_records = []
+        for f in exp_in.factors:
+            factor_records.append(
+                Factor(
+                    id=uuid.uuid4(),
+                    experiment_id=new_exp.id,
+                    name=f.name,
+                    formula=f.formula,
+                    created_at=datetime.now(UTC),
+                    backtest_result=None,
+                    robustness_result=None,
+                )
+            )
+
+        new_exp.factors = factor_records
+        return new_exp
+
     # 1. Create the Experiment record
     new_exp = Experiment(
         id=uuid.uuid4(),

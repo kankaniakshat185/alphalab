@@ -23,10 +23,12 @@ router = APIRouter(prefix="/factors", tags=["Factors"])
 
 # --- Response DTOs ---
 
+
 class LeaderboardFactor(BaseModel):
     id: uuid.UUID
     name: str
     formula: str
+    created_at: datetime
     sharpe: float | None = None
     ic: float | None = None
     overall_score: float | None = None
@@ -46,6 +48,17 @@ class FactorDetailResponse(BaseModel):
     created_at: datetime
     metrics: dict[str, float | None]
     status: str
+    verdict_sharpe: str | None = None
+    verdict_ic: str | None = None
+    verdict_mdd: str | None = None
+    verdict_robustness: str | None = None
+    daily_mean: float | None = None
+    daily_std: float | None = None
+    mdd_peak_date: str | None = None
+    mdd_trough_date: str | None = None
+    dominant_failure: str | None = None
+    explanation: str | None = None
+    recommendations: list[str] = []
 
 
 class BacktestResponse(BaseModel):
@@ -58,9 +71,11 @@ class RobustnessResponse(BaseModel):
     explanation: str | None = None
     recommendations: list[str] = []
     grid: list[dict[str, Any]] = []
+    stressed_equity_curve: list[dict[str, Any]] | None = None
 
 
 # --- Endpoints ---
+
 
 @router.get("/leaderboard", response_model=LeaderboardResponse)
 async def get_leaderboard(
@@ -80,8 +95,7 @@ async def get_leaderboard(
     stmt = (
         select(Factor)
         .options(
-            selectinload(Factor.backtest_result),
-            selectinload(Factor.robustness_result)
+            selectinload(Factor.backtest_result), selectinload(Factor.robustness_result)
         )
         .outerjoin(BacktestResult, Factor.id == BacktestResult.factor_id)
         .outerjoin(RobustnessResult, Factor.id == RobustnessResult.factor_id)
@@ -119,6 +133,7 @@ async def get_leaderboard(
                 id=f.id,
                 name=f.name,
                 formula=f.formula,
+                created_at=f.created_at,
                 sharpe=b_res.sharpe if b_res else None,
                 ic=b_res.ic if b_res else None,
                 overall_score=r_res.overall_score if r_res else None,
@@ -143,7 +158,8 @@ async def get_factor_details(
         select(Factor)
         .options(
             selectinload(Factor.experiment),
-            selectinload(Factor.backtest_result)
+            selectinload(Factor.backtest_result),
+            selectinload(Factor.robustness_result),
         )
         .where(Factor.id == factor_id)
     )
@@ -165,6 +181,13 @@ async def get_factor_details(
             "rank_ic": factor.backtest_result.rank_ic,
         }
 
+    if factor.robustness_result:
+        metrics["overall_score"] = factor.robustness_result.overall_score
+
+    b_res = factor.backtest_result
+    r_res = factor.robustness_result
+    reasons = r_res.failure_reasons or {} if r_res else {}
+
     return FactorDetailResponse(
         id=factor.id,
         name=factor.name,
@@ -172,6 +195,17 @@ async def get_factor_details(
         created_at=factor.created_at,
         metrics=metrics,
         status=factor.experiment.status if factor.experiment else "UNKNOWN",
+        verdict_sharpe=b_res.verdict_sharpe if b_res else None,
+        verdict_ic=b_res.verdict_ic if b_res else None,
+        verdict_mdd=b_res.verdict_mdd if b_res else None,
+        verdict_robustness=r_res.verdict_robustness if r_res else None,
+        daily_mean=b_res.daily_mean if b_res else None,
+        daily_std=b_res.daily_std if b_res else None,
+        mdd_peak_date=b_res.mdd_peak_date if b_res else None,
+        mdd_trough_date=b_res.mdd_trough_date if b_res else None,
+        dominant_failure=reasons.get("dominant_failure"),
+        explanation=reasons.get("explanation"),
+        recommendations=reasons.get("recommendations", []),
     )
 
 
@@ -188,9 +222,7 @@ async def get_factor_backtest(
     if not b_res:
         raise HTTPException(status_code=404, detail="Backtest result not found")
 
-    return BacktestResponse(
-        equity_curve=b_res.equity_curve or []
-    )
+    return BacktestResponse(equity_curve=b_res.equity_curve or [])
 
 
 @router.get("/{factor_id}/robustness", response_model=RobustnessResponse)
@@ -212,5 +244,6 @@ async def get_factor_robustness(
         dominant_failure=reasons.get("dominant_failure"),
         explanation=reasons.get("explanation"),
         recommendations=reasons.get("recommendations", []),
-        grid=r_res.perturbation_grid or []
+        grid=r_res.perturbation_grid or [],
+        stressed_equity_curve=r_res.stressed_equity_curve or [],
     )

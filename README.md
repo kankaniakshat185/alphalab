@@ -1,80 +1,91 @@
+<div align="center">
+
 # AlphaLab
+
+**An institutional-grade, robustness-aware quantitative factor research platform built for NIFTY 50 equities.**
 
 [![Lint](https://github.com/VaishnaviRai287/alphalab/actions/workflows/lint.yml/badge.svg)](https://github.com/VaishnaviRai287/alphalab/actions/workflows/lint.yml)
 [![Test](https://github.com/VaishnaviRai287/alphalab/actions/workflows/test.yml/badge.svg)](https://github.com/VaishnaviRai287/alphalab/actions/workflows/test.yml)
 [![Install](https://github.com/VaishnaviRai287/alphalab/actions/workflows/install.yml/badge.svg)](https://github.com/VaishnaviRai287/alphalab/actions/workflows/install.yml)
+[![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://python.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**A robustness-aware factor research platform for NIFTY 50 equities.**
-
-AlphaLab answers one question:
-
-> *"Can we distinguish genuinely robust predictive factors from overfit ones using systematic stress testing?"*
-
-Finance is the application domain. Evaluation is the discipline.
+</div>
 
 ---
 
-## What AlphaLab Does
+## What is AlphaLab?
 
-A quantitative analyst defines a factor using AlphaLab's domain-specific language:
+AlphaLab answers a core quantitative research question:
 
-```
-Momentum(20) / Volatility(30)
-```
+> *How do we distinguish genuinely predictive alpha factors from overfit strategies that exploit historical noise?*
 
-AlphaLab:
+It combines **cross-sectional backtesting** with **systematic stress testing** — subjecting every factor to synthetic noise and missing-data scenarios — to produce a robustness score alongside the traditional Sharpe ratio. Only factors that survive both dimensions are considered real candidates.
 
-1. **Compiles** the expression into a validated, executable function (no `eval`, no arbitrary imports)
-2. **Backtests** it using walk-forward validation on NIFTY 50 historical data — producing Sharpe, IC, Drawdown, and more
-3. **Stress-tests** it by perturbing price/volume data with noise and missing observations
-4. **Scores** its robustness: `Average Performance Under Stress / Original Performance`
-5. **Reports** the result: metrics, equity curve, robustness heatmap, and failure reasoning — automatically
+---
 
-A factor that survives stress testing is likely capturing a real market dynamic.
-A factor that collapses under small perturbations is likely overfit.
+## Core Features
+
+| Feature | Description |
+|---|---|
+| **Factor DSL** | Express signals with primitives like `rank`, `scale`, `delay`, `delta`, `ts_max`, `correlation` — compiled into vectorized execution |
+| **NIFTY 50 Universe** | Point-in-time constituent mapping — immune to survivorship bias |
+| **Async Backtester** | Celery-backed walk-forward simulations offloaded via Redis |
+| **Stress Engine** | 6 noise levels × 6 drop levels — scores factors by median-path Maximum Drawdown |
+| **Research Dashboard** | Interactive Next.js UI with scatter plots, leaderboard, and LLM-generated verdicts |
+| **JWT Auth** | Secure user sessions with `passlib[bcrypt]` + PyJWT |
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  Next.js Frontend                                           │
-│  Factor Leaderboard  |  Factor Detail + Research Report     │
-└──────────────────────────────┬──────────────────────────────┘
-                               │ HTTP / REST
-┌──────────────────────────────▼──────────────────────────────┐
-│  FastAPI Application                                        │
-│  /experiments  /factors  /backtest  /robustness  /report    │
-└──────────────┬──────────────────────────────┬───────────────┘
-               │ PostgreSQL                   │ Redis (enqueue)
-┌──────────────▼──────────────┐  ┌───────────▼───────────────┐
-│  PostgreSQL                 │  │  Celery Worker            │
-│  users, experiments,        │◄─│  run_backtest()           │
-│  factors, results           │  │  run_robustness()         │
-└─────────────────────────────┘  └───────────┬───────────────┘
-                                             │ DuckDB (read)
-                                 ┌───────────▼───────────────┐
-                                 │  DuckDB                   │
-                                 │  OHLCV, universe,         │
-                                 │  factor_values            │
-                                 └───────────────────────────┘
+┌─────────────────────────────────────────────┐
+│  Next.js Frontend  (localhost:3000)          │
+│  Scatter Plot · Leaderboard · Events Feed   │
+└─────────────────┬───────────────────────────┘
+                  │ HTTP / REST
+┌─────────────────▼───────────────────────────┐
+│  FastAPI  (localhost:8000)                  │
+│  /experiments  /factors  /backtest          │
+│  /robustness   /auth                        │
+└──────────┬──────────────────────┬───────────┘
+           │ PostgreSQL            │ Redis (Celery broker)
+┌──────────▼──────────┐  ┌────────▼──────────────────┐
+│  PostgreSQL 16      │  │  Celery Worker            │
+│  Users, factors,   │◄─│  run_backtest()           │
+│  results, jobs      │  │  run_robustness()         │
+└─────────────────────┘  └────────┬──────────────────┘
+                                  │ DuckDB (read-only)
+                         ┌────────▼──────────────────┐
+                         │  DuckDB                   │
+                         │  Historical OHLCV,        │
+                         │  NIFTY 50 universe cache  │
+                         └───────────────────────────┘
 ```
 
 ---
 
-## Technology Stack
+## Tech Stack
 
-| Layer | Technology | Why |
-|---|---|---|
-| API | FastAPI | Async, Python-native, OpenAPI generation |
-| Task Queue | Celery + Redis | 30–60s backtests require async execution |
-| Metadata DB | PostgreSQL (Neon) | Relational metadata, ACID transactions |
-| Analytical DB | DuckDB | Columnar, embedded, fast rolling-window computation |
-| Auth | JWT (PyJWT) | Stateless, no session storage required |
-| Frontend | Next.js | TypeScript, SSR, Vercel deployment |
-| CI/CD | GitHub Actions | Repository-native |
-| Deployment | Render + Vercel + Neon | Zero-ops, free tier |
+**Backend**
+- [FastAPI](https://fastapi.tiangolo.com/) + [Uvicorn](https://www.uvicorn.org/) — REST API
+- [Celery](https://docs.celeryq.dev/) + [Redis](https://redis.io/) — async task queue
+- [SQLAlchemy](https://www.sqlalchemy.org/) (async) + [PostgreSQL](https://www.postgresql.org/) — metadata store
+- [DuckDB](https://duckdb.org/) — analytics / time-series store
+- [Alembic](https://alembic.sqlalchemy.org/) — database migrations
+- [Pydantic Settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) — configuration
+
+**Frontend**
+- [Next.js 14](https://nextjs.org/) (App Router) + TypeScript
+- Recharts, Framer Motion
+
+**Tooling**
+- [Ruff](https://docs.astral.sh/ruff/) — linting & formatting
+- [Mypy](https://mypy-lang.org/) — static type checking (strict)
+- [Pytest](https://pytest.org/) — test suite
+- [pre-commit](https://pre-commit.com/) — git hooks
+- [Docker Compose](https://docs.docker.com/compose/) — local infrastructure
 
 ---
 
@@ -82,111 +93,109 @@ A factor that collapses under small perturbations is likely overfit.
 
 ### Prerequisites
 
-- Python 3.12
+- Python **3.12+**
+- Node.js **18+** and NPM
 - Docker and Docker Compose
 
-### 1. Clone the repository
+### 1. Clone & install
 
 ```bash
 git clone https://github.com/VaishnaviRai287/alphalab.git
 cd alphalab
-```
 
-### 2. Install the package
-
-```bash
 python -m venv .venv
-source .venv/bin/activate       # Windows: .venv\Scripts\activate
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+
 pip install -e ".[dev]"
 ```
 
-### 3. Configure environment
+### 2. Configure environment
 
 ```bash
-cp infra/.env.example .env
-# Edit .env — fill in POSTGRES_PASSWORD, REDIS_PASSWORD, etc.
+cp .env.example .env
+# Open .env and fill in your passwords and secrets
 ```
 
-### 4. Start infrastructure
+### 3. Start infrastructure
 
 ```bash
 docker compose -f infra/docker-compose.yml up -d
 ```
 
-### 5. Run tests
+This starts **PostgreSQL 16** and **Redis 7** in the background.
+
+> Add `--profile tools` to also start **pgAdmin** at `http://localhost:5050`.
+
+### 4. Bootstrap the database
 
 ```bash
-pytest tests/ -v
+python scripts/bootstrap.py
 ```
 
-### 6. Install pre-commit hooks (first time only)
+Runs Alembic migrations and seeds DuckDB with NIFTY 50 pricing history.
+
+### 5. Run the platform
+
+Open three terminal tabs:
 
 ```bash
+# Tab 1 — API
+uvicorn alphalab.api.main:app --reload --port 8000
+
+# Tab 2 — Celery worker
+celery -A alphalab.worker.celery worker --pool=solo --loglevel=info
+
+# Tab 3 — Frontend
+cd web && npm install && npm run dev
+```
+
+Open **http://localhost:3000** to access the Research Dashboard.
+
+---
+
+## Project Structure
+
+```
+AlphaLab/
+├── src/alphalab/          # Python package (src layout)
+│   ├── api/               # FastAPI routes and request/response schemas
+│   ├── data/              # Market data ingestion, DuckDB storage, universe
+│   ├── dsl/               # Factor DSL — lexer, parser, evaluator
+│   ├── engine/            # Backtester and robustness stress engine
+│   ├── worker/            # Celery task definitions
+│   ├── common/            # Shared types, exceptions, domain primitives
+│   └── config/            # Pydantic settings
+├── web/                   # Next.js frontend (App Router)
+├── tests/                 # Pytest suite
+├── infra/                 # Docker Compose and .env.example
+├── alembic/               # Database migration scripts
+├── scripts/               # bootstrap.py, ingest_data.py
+└── docs/                  # Architecture docs and ADRs
+```
+
+---
+
+## Development
+
+```bash
+# Run tests
+pytest tests/ -v
+
+# Lint
+ruff check .
+
+# Type check
+mypy src/
+
+# Format
+ruff format .
+
+# Install git hooks (runs lint on every commit)
 pre-commit install
 ```
 
 ---
 
-## Repository Structure
-
-```
-AlphaLab/
-├── src/alphalab/          Python package (src layout)
-│   ├── api/               FastAPI application (Phase 6)
-│   ├── data/              Market data, ingestion (Phase 1)
-│   ├── dsl/               Factor DSL compiler (Phase 2)
-│   ├── engine/            Backtest + Robustness engines (Phase 3, 5)
-│   ├── worker/            Celery tasks (Phase 4)
-│   ├── common/            Shared types, exceptions
-│   ├── config/            Settings
-│   └── utils/             Utility functions
-├── web/                   Next.js frontend (Phase 8)
-├── tests/                 Test suite
-├── infra/                 Docker Compose, environment template
-├── docs/                  Public documentation
-└── .github/               CI/CD, issue templates
-```
-
----
-
-## Phase Roadmap
-
-| Phase | Objective | Status |
-|---|---|---|
-| 0 | Engineering Foundation | ✅ Complete |
-| 1 | Data Foundation | 🔲 Next |
-| 2 | Factor DSL | 🔲 |
-| 3 | Backtesting Engine | 🔲 |
-| 4 | Background Execution | 🔲 |
-| 5 | Robustness Engine | 🔲 |
-| 6 | Backend API | 🔲 |
-| 7 | Research Reports | 🔲 |
-| 8 | Frontend | 🔲 |
-| 9 | Testing | 🔲 |
-| 10 | Deployment | 🔲 |
-| 11 | Polish & Interview Readiness | 🔲 |
-
----
-
-## Documentation
-
-| Document | Purpose |
-|---|---|
-| [`docs/00_MASTER_PLAN.md`](docs/00_MASTER_PLAN.md) | Project constitution — thesis, goals, roadmap |
-| [`docs/01_ARCHITECTURE.md`](docs/01_ARCHITECTURE.md) | System architecture — components, data flow, schema |
-| [`docs/02_CURRENT_STATE.md`](docs/02_CURRENT_STATE.md) | Current phase status |
-| [`docs/03_NEXT_STAGE.md`](docs/03_NEXT_STAGE.md) | Immediate next milestone |
-| [`docs/adr/`](docs/adr/) | Architectural Decision Records |
-
----
-
-## Contributing
-
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the git workflow, commit convention,
-PR process, and documentation policy.
-
----
-
 ## License
 
-MIT — see [`LICENSE`](LICENSE).
+MIT — see [LICENSE](LICENSE).

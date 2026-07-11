@@ -98,40 +98,114 @@ AlphaLab/
 
 ---
 
-## 4. Data Flow
+## 4. Data Flow & Block Rationale
 
-### Experiment Submission (Phase 6 planned)
+AlphaLab operates as a coordinated data pipeline. Here is how information flows between nodes:
 
-```
-User submits DSL expression via POST /factors
-    → api: validate request body
-    → dsl: lex → parse → validate → compile → store factor
-    → api: return factor_id (201 Created)
+### Component-by-Component Data Flow
 
-User triggers backtest via POST /factors/{id}/backtest
-    → api: enqueue Celery task → return job_id (202 Accepted)
-    → worker: run_backtest(factor_id)
-        → data: load OHLCV + universe from DuckDB
-        → dsl: compile factor expression → callable
-        → engine: walk-forward validation
-        → engine: compute metrics (Sharpe, IC, etc.)
-        → store results in PostgreSQL
-    → api: GET /factors/{id}/backtest → 200 with results
-```
+#### 1. Next.js Frontend Dashboard
+- **Input**: User formula syntax, date boundaries, rebalance frequency parameters.
+- **Processing**: Standardizes payload validation; parses authentication headers.
+- **Output**: JSON payload to `POST /factors` or `POST /factors/{id}/run`.
 
-### Robustness Evaluation (Phase 5)
+#### 2. FastAPI Router
+- **Input**: User-provided HTTP REST requests and body models.
+- **Processing**: Resolves routing endpoints; delegates syntax checks; maps PostgreSQL transaction queries.
+- **Output**: Job task IDs enqueued via Celery and immediate `202 Accepted` status codes.
 
-```
-User triggers robustness via POST /factors/{id}/robustness
-    → api: enqueue Celery task → return job_id (202 Accepted)
-    → worker: run_robustness(factor_id)
-        → data: load base OHLCV from DuckDB
-        → engine.robustness: noise injection × 3 levels
-        → engine.robustness: missing data × 3 levels
-        → engine: compute metrics for each perturbation
-        → engine: compute robustness score
-        → store results + failure reasoning in PostgreSQL
-    → api: GET /factors/{id}/robustness → 200 with score + reasoning
+#### 3. Factor DSL Compiler
+- **Input**: Unvalidated math strings (e.g. `Momentum(20)`).
+- **Processing**: Tokenizes and parses expressions into AST nodes; runs look-ahead checks to restrict future-leak references.
+- **Output**: Transpiled, highly optimized NumPy/Pandas closures.
+
+#### 4. Celery Worker
+- **Input**: Task messages containing factor and execution parameters.
+- **Processing**: Pulls tasks; controls DB writes; runs calculation engines.
+- **Output**: Calculated performance tables written to PostgreSQL.
+
+#### 5. PostgreSQL Metadata DB
+- **Input**: Metric outputs, factor AST definitions, status flags.
+- **Processing**: Manages transactional metadata integrity.
+- **Output**: Stored user history records and pipeline metadata results.
+
+#### 6. DuckDB Analytic DB
+- **Input**: Cleaned historical stock prices and index constituent changes.
+- **Processing**: Executes fast columnar window queries.
+- **Output**: Clean historical price and index constituent DataFrames.
+
+#### 7. Backtest/Robustness Engine
+- **Input**: Callable compiled factor models and price DataFrames.
+- **Processing**: Computes backtest returns; adds pricing noise (±0.5% to ±2.0%) and data gaps (5% to 20%); scores resilience.
+- **Output**: Numerical performance matrices (Sharpe, Drawdowns, Robustness Scores).
+
+#### 8. Data Ingestion Layer
+- **Input**: Unprocessed source CSV tables and third-party APIs.
+- **Processing**: Filters outliers, maps calendars, adjusts corporate actions.
+- **Output**: Columnar tables imported to DuckDB.
+
+---
+
+### Sequence Flow (Factor Registration & Execution)
+
+The following diagram tracks the lifecycle of an evaluation, from registration to final metric generation:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Quantitative Researcher
+    participant Web as Next.js Frontend
+    participant API as FastAPI Router
+    participant DSL as Factor DSL Compiler
+    participant DB as PostgreSQL Metadata DB
+    participant Celery as Celery Worker
+    participant Duck as DuckDB Analytic DB
+    participant Engine as Backtest/Robustness Engine
+
+    %% Step 1: Submit Factor Definition
+    User->>Web: Input Formula 'Momentum(20)'
+    Web->>API: POST /factors (formula: 'Momentum(20)', name: 'Mom_20')
+    API->>DSL: verify_syntax("Momentum(20)")
+    DSL-->>API: Syntax Valid (No look-ahead bias)
+    API->>DB: Insert factor draft (status: 'DRAFT')
+    DB-->>API: Return factor_id (UUID)
+    API-->>Web: 201 Created (factor_id)
+    Web-->>User: Display draft confirmation
+
+    %% Step 2: Trigger Job
+    User->>Web: Click 'Run Pipeline'
+    Web->>API: POST /factors/{factor_id}/run
+    API->>DB: Update job state to 'PENDING'
+    API->>Celery: Enqueue execution task (factor_id)
+    API-->>Web: 202 Accepted (job_id)
+    Web-->>User: Display 'Calculation Started' status indicator
+
+    %% Step 3: Worker Ingestion & Calculation Loops
+    Note over Celery: Worker pulls task from queue
+    Celery->>DB: Update status to 'RUNNING'
+    Celery->>DB: Retrieve factor details (formula: 'Momentum(20)')
+    DB-->>Celery: Returns formula string
+    Celery->>Duck: Load prices & universe historical DataFrames
+    Duck-->>Celery: Return NIFTY 50 OHLCV DataFrame
+    Celery->>DSL: compile_to_callable("Momentum(20)")
+    DSL-->>Celery: Return vectorized python closure
+
+    %% Backtesting & Stress loops
+    Celery->>Engine: run_backtest_and_stress(callable, price_df)
+    Note over Engine: Calculates roll weights
+    Note over Engine: Injects price noise & gaps
+    Engine-->>Celery: Returns metrics (Sharpe, Drawdown, Robustness Score)
+
+    %% Persist & Return
+    Celery->>DB: Write backtest_results & robustness_results
+    Celery->>DB: Update status to 'COMPLETED'
+
+    %% Polling
+    Web->>API: GET /factors/{factor_id}/status (Polling)
+    API->>DB: Query job results
+    DB-->>API: Return results (Sharpe, Robustness Score)
+    API-->>Web: 200 OK (Results & metrics payload)
+    Web-->>User: Renders returns curve & robustness dials
 ```
 
 ---
