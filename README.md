@@ -196,6 +196,27 @@ pre-commit install
 
 ---
 
+## Repository Structure
+
+```
+AlphaLab/
+├── src/alphalab/          Python package (src layout)
+│   ├── api/               FastAPI application (Phase 6)
+│   ├── data/              Market data, ingestion (Phase 1)
+│   ├── dsl/               Factor DSL compiler (Phase 2)
+│   ├── engine/            Backtest + Robustness engines (Phase 3, 5)
+│   ├── worker/            Celery tasks (Phase 4)
+│   ├── common/            Shared types, exceptions
+│   ├── config/            Settings
+│   └── utils/             Utility functions
+├── web/                   Next.js frontend (Phase 8)
+├── tests/                 Test suite
+├── infra/                 Docker Compose, environment template
+├── docs/                  Public documentation
+└── .github/               CI/CD, issue templates
+```
+
+---
 ## License
 
 MIT — see [LICENSE](LICENSE).
