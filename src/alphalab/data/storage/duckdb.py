@@ -129,11 +129,8 @@ class DuckDBStorage(Storage):
                 ORDER BY ticker, date
             """
             params = [*tickers, start_date, end_date]
-            # Use fetchall() instead of fetchdf() to avoid segfault on
-            # Python 3.13 + DuckDB 1.5 + Apple Silicon (ARM64).
-            columns = ["ticker", "date", "open", "high", "low", "close", "volume", "adj_close"]
-            rows = conn.execute(query, params).fetchall()
-            df = pd.DataFrame(rows, columns=columns)
+            # Use fetchdf() because it is highly optimized via Arrow and prevents OOM on Linux.
+            df = conn.execute(query, params).fetchdf()
 
             logger.debug(
                 f"[DataIngestion] [DuckDBStorage] Query returned {len(df)} price records"
