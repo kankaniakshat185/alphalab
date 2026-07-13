@@ -35,11 +35,17 @@ class Settings(BaseSettings):
     @property
     def async_database_url(self) -> str:
         """Automatically converts a standard postgresql:// URL to postgresql+asyncpg://"""
-        if self.DATABASE_URL.startswith("postgresql://"):
-            return self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
-        if self.DATABASE_URL.startswith("postgres://"):
-            return self.DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
-        return self.DATABASE_URL
+        url = self.DATABASE_URL
+        if url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+            
+        # asyncpg does not accept 'sslmode=', it expects 'ssl='
+        if "sslmode=" in url:
+            url = url.replace("sslmode=", "ssl=")
+            
+        return url
 
     # Redis Task Broker URL
     REDIS_URL: str = "redis://:redis_local_password_change_me@localhost:6379/0"
