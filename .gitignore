@@ -1,18 +1,24 @@
 # =============================================================================
 # AlphaLab — .gitignore
 # =============================================================================
-# Two categories of files are NEVER tracked:
-#   1. internal/  — private engineering notebook (learning notes, diary, etc.)
-#   2. .env       — secrets (DB passwords, API keys, etc.)
-#
-# All other entries follow standard Python + Node.js + macOS conventions.
-# =============================================================================
 
 # -----------------------------------------------------------------------------
 # PRIVATE — never push to GitHub
 # -----------------------------------------------------------------------------
 internal/
 .env
+
+# -----------------------------------------------------------------------------
+# Internal project management — not relevant for public GitHub
+# -----------------------------------------------------------------------------
+CONTRIBUTING.md
+TASKS.md
+SKELETON_GUIDE.md
+CHANGELOG.md
+SECURITY.md
+.github/CODEOWNERS
+.github/PULL_REQUEST_TEMPLATE.md
+.github/ISSUE_TEMPLATE/
 
 # -----------------------------------------------------------------------------
 # Python
@@ -82,9 +88,9 @@ yarn-error.log*
 # -----------------------------------------------------------------------------
 # Infrastructure
 # -----------------------------------------------------------------------------
-# .env.example is committed — .env is not
-.env.*
-!.env.example
+# .env is gitignored — .env.example files are committed as templates
+.env
+infra/.env
 
 # Docker volumes (if mounted locally)
 postgres-data/

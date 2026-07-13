@@ -49,15 +49,11 @@ def test_run_backtest_task_success(
 
     mock_session.get.return_value = mock_factor
 
-    # Mock checking previous results (return None for no duplicate)
+    # Mock database queries (duplicates and completion counts)
     mock_executor = MagicMock()
     mock_executor.scalar_one_or_none.return_value = None
-
-    # Mock resolving experiment completion (return no other factors)
-    mock_factors_executor = MagicMock()
-    mock_factors_executor.scalars.return_value.all.return_value = [mock_factor]
-
-    mock_session.execute.side_effect = [mock_executor, mock_factors_executor]
+    mock_executor.scalar.return_value = 1
+    mock_session.execute.return_value = mock_executor
 
     # Mock storage connections
     mock_storage = MagicMock()
@@ -153,17 +149,15 @@ def test_run_robustness_task_success(
         "missing_data_score": 0.91,
         "overall_score": 0.86,
         "failure_reasons": {},
+        "perturbation_grid": [],
+        "stressed_equity_curve": {},
     }
 
-    # Mock checking previous results
+    # Mock checking previous results and completion counts
     mock_executor = MagicMock()
     mock_executor.scalar_one_or_none.return_value = None
-
-    # Mock resolving experiment completion
-    mock_factors_executor = MagicMock()
-    mock_factors_executor.scalars.return_value.all.return_value = [mock_factor]
-
-    mock_session.execute.side_effect = [mock_executor, mock_factors_executor]
+    mock_executor.scalar.return_value = 1
+    mock_session.execute.return_value = mock_executor
 
     # Trigger the task
     run_robustness_task(str(factor_id))

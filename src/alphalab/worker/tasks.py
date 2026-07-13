@@ -1,15 +1,16 @@
 import asyncio
 import logging
 import uuid
+from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from alphalab.api.database.connection import async_session_maker
 from alphalab.api.models.experiment import Experiment
 from alphalab.api.models.factor import Factor
-from alphalab.api.models.results import RobustnessResult
+from alphalab.api.models.results import BacktestResult, RobustnessResult
 from alphalab.data.storage.duckdb import DuckDBStorage
 from alphalab.data.universe.nifty50 import NIFTY50Universe
 from alphalab.engine.robustness import RobustnessEvaluator
@@ -23,35 +24,30 @@ async def _check_and_update_experiment_status_async(
     session: AsyncSession, experiment_id: uuid.UUID
 ) -> None:
     """Helper query checking if all factors in the experiment have completed analysis."""
-    # Fetch all factors and load their results
-    stmt = (
-        select(Factor)
-        .options(
-            selectinload(Factor.backtest_result),
-            selectinload(Factor.robustness_result),
-        )
-        .where(Factor.experiment_id == experiment_id)
+    # Count total factors
+    total_stmt = select(func.count(Factor.id)).where(
+        Factor.experiment_id == experiment_id
     )
-    result = await session.execute(stmt)
-    factors = result.scalars().all()
+    total_factors = (await session.execute(total_stmt)).scalar() or 0
 
-    # If all factors have both results, the experiment is finished
-    all_done = True
-    for f in factors:
-        # Check if the results exist in session or database
-        has_backtest = f.backtest_result is not None
-        has_robustness = f.robustness_result is not None
-        if not (has_backtest and has_robustness):
-            all_done = False
-            break
+    # Count factors with both backtest and robustness results
+    completed_stmt = select(func.count(Factor.id)).where(
+        Factor.experiment_id == experiment_id,
+        Factor.id.in_(select(BacktestResult.factor_id)),
+        Factor.id.in_(select(RobustnessResult.factor_id)),
+    )
+    completed_factors = (await session.execute(completed_stmt)).scalar() or 0
 
-    if all_done:
+    if total_factors > 0 and completed_factors >= total_factors:
         logger.info(
-            f"[Celery] [Status] All factors analyzed. Completing Experiment {experiment_id}"
+            f"[Celery] [Status] All factors analyzed ({completed_factors}/{total_factors}). Completing Experiment {experiment_id}"
         )
-        exp = await session.get(Experiment, experiment_id)
-        if exp:
-            exp.status = "COMPLETED"
+        stmt = (
+            update(Experiment)
+            .where(Experiment.id == experiment_id)
+            .values(status="COMPLETED")
+        )
+        await session.execute(stmt)
 
 
 async def _run_backtest_async(factor_id: str) -> None:
@@ -124,7 +120,22 @@ async def _run_robustness_async(factor_id: str) -> None:
             )
             evaluator = RobustnessEvaluator(base_storage=storage)
             res = await asyncio.to_thread(
-                evaluator.run_robustness, factor.formula, tickers, start_date, end_date, baseline_sharpe
+                evaluator.run_robustness,
+                factor.formula,
+                tickers,
+                start_date,
+                end_date,
+                baseline_sharpe,
+            )
+
+            # Generate and cache robustness verdict
+            from alphalab.worker.verdicts import get_robustness_verdict
+
+            v_robustness = get_robustness_verdict(
+                res["overall_score"],
+                baseline_sharpe or 0.0,
+                res["overall_score"] * (baseline_sharpe or 0.0),
+                res["failure_reasons"],
             )
 
             # Check if robustness result already exists to avoid unique constraint violations
@@ -139,6 +150,9 @@ async def _run_robustness_async(factor_id: str) -> None:
                     missing_data_score=res["missing_data_score"],
                     overall_score=res["overall_score"],
                     failure_reasons=res["failure_reasons"],
+                    perturbation_grid=res["perturbation_grid"],
+                    verdict_robustness=v_robustness,
+                    stressed_equity_curve=res["stressed_equity_curve"],
                 )
                 session.add(r_res)
             else:
@@ -146,6 +160,9 @@ async def _run_robustness_async(factor_id: str) -> None:
                 r_res.missing_data_score = res["missing_data_score"]
                 r_res.overall_score = res["overall_score"]
                 r_res.failure_reasons = res["failure_reasons"]
+                r_res.perturbation_grid = res["perturbation_grid"]
+                r_res.verdict_robustness = v_robustness
+                r_res.stressed_equity_curve = res["stressed_equity_curve"]
 
             await session.flush()
             await _check_and_update_experiment_status_async(
@@ -173,13 +190,24 @@ async def _run_robustness_async(factor_id: str) -> None:
             raise e
 
 
+_LOOP = None
+
+
+def _run_coroutine_safely(coro: Any) -> Any:
+    global _LOOP
+    if _LOOP is None or _LOOP.is_closed():
+        _LOOP = asyncio.new_event_loop()
+        asyncio.set_event_loop(_LOOP)
+    return _LOOP.run_until_complete(coro)
+
+
 @celery_app.task  # type: ignore[untyped-decorator]
 def run_backtest_task(factor_id: str) -> None:
     """Synchronous Celery task wrapper launching the asynchronous backtest worker."""
-    asyncio.run(_run_backtest_async(factor_id))
+    _run_coroutine_safely(_run_backtest_async(factor_id))
 
 
 @celery_app.task  # type: ignore[untyped-decorator]
 def run_robustness_task(factor_id: str) -> None:
-    """Synchronous Celery task wrapper launching the asynchronous robustness worker."""
-    asyncio.run(_run_robustness_async(factor_id))
+    """Synchronous Celery task wrapper launching the asynchronous robustness evaluation worker."""
+    _run_coroutine_safely(_run_robustness_async(factor_id))

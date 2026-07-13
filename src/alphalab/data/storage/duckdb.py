@@ -31,14 +31,14 @@ class DuckDBStorage(Storage):
         self.db_path = db_path
         self._schema_manager = SchemaManager()
 
-    def _get_connection(self) -> duckdb.DuckDBPyConnection:
+    def _get_connection(self, read_only: bool = False) -> duckdb.DuckDBPyConnection:
         """Create and return a new DuckDB connection, setting operational pragmas."""
         # Ensure database directory exists
         db_dir = os.path.dirname(self.db_path)
         if db_dir:
             os.makedirs(db_dir, exist_ok=True)
 
-        conn = duckdb.connect(self.db_path)
+        conn = duckdb.connect(self.db_path, read_only=read_only)
         conn.execute(f"PRAGMA memory_limit='{settings.DUCKDB_MEMORY_LIMIT}'")
         return conn
 
@@ -117,7 +117,7 @@ class DuckDBStorage(Storage):
             f"[DataIngestion] [DuckDBStorage] Querying ohlcv data for {len(tickers)} tickers "
             f"from {start_date} to {end_date}"
         )
-        conn = self._get_connection()
+        conn = self._get_connection(read_only=True)
         try:
             placeholders = ", ".join(["?"] * len(tickers))
             query = f"""
@@ -129,11 +129,11 @@ class DuckDBStorage(Storage):
                 ORDER BY ticker, date
             """
             params = [*tickers, start_date, end_date]
-            df = conn.execute(query, params).fetchdf()
-
-            # Ensure 'date' column is cast to python datetime.date
-            if not df.empty:
-                df["date"] = pd.to_datetime(df["date"]).dt.date
+            # Use fetchall() instead of fetchdf() to avoid segfault on
+            # Python 3.13 + DuckDB 1.5 + Apple Silicon (ARM64).
+            columns = ["ticker", "date", "open", "high", "low", "close", "volume", "adj_close"]
+            rows = conn.execute(query, params).fetchall()
+            df = pd.DataFrame(rows, columns=columns)
 
             logger.debug(
                 f"[DataIngestion] [DuckDBStorage] Query returned {len(df)} price records"
@@ -144,7 +144,7 @@ class DuckDBStorage(Storage):
 
     def get_available_date_range(self) -> tuple[date, date]:
         """Get the minimum and maximum dates available in the OHLCV storage."""
-        conn = self._get_connection()
+        conn = self._get_connection(read_only=True)
         try:
             res = conn.execute("SELECT MIN(date), MAX(date) FROM ohlcv").fetchone()
             if not res or res[0] is None or res[1] is None:
@@ -213,7 +213,7 @@ class DuckDBStorage(Storage):
             f"[DataIngestion] [DuckDBStorage] Reading index {index_name} active constituents "
             f"between {start_date} and {end_date}"
         )
-        conn = self._get_connection()
+        conn = self._get_connection(read_only=True)
         try:
             # Query active constituents where interval overlaps [start_date, end_date]
             query = """
@@ -225,27 +225,21 @@ class DuckDBStorage(Storage):
                 ORDER BY ticker, effective_from
             """
             params = [index_name, end_date, start_date]
-            df = conn.execute(query, params).fetchdf()
+            # Use fetchall() instead of fetchdf() to avoid segfault on
+            # Python 3.13 + DuckDB 1.5 + Apple Silicon (ARM64).
+            rows = conn.execute(query, params).fetchall()
 
-            if df.empty:
+            if not rows:
                 return []
-
-            # Format database dates to python datetime.date
-            df["effective_from"] = pd.to_datetime(df["effective_from"]).dt.date
-            df["effective_to"] = pd.to_datetime(df["effective_to"]).dt.date.where(
-                df["effective_to"].notnull(), None
-            )
 
             entries = [
                 UniverseEntry(
-                    ticker=row["ticker"],
-                    index_name=row["index_name"],
-                    effective_from=row["effective_from"],
-                    effective_to=row["effective_to"]
-                    if pd.notna(row["effective_to"])
-                    else None,
+                    ticker=row[0],
+                    index_name=row[1],
+                    effective_from=row[2],
+                    effective_to=row[3] if row[3] is not None else None,
                 )
-                for _, row in df.iterrows()
+                for row in rows
             ]
             logger.debug(
                 f"[DataIngestion] [DuckDBStorage] Query returned {len(entries)} constituent entries"
