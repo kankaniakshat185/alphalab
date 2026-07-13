@@ -12,7 +12,7 @@ class Settings(BaseSettings):
 
     # Storage Settings
     DUCKDB_PATH: str = "internal/data/alphalab.db"
-    DUCKDB_MEMORY_LIMIT: str = "2GB"
+    DUCKDB_MEMORY_LIMIT: str = "256MB"
 
     # Yahoo Provider Settings
     YAHOO_HTTP_TIMEOUT: int = 15
