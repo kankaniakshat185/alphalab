@@ -23,7 +23,7 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 # Override the database connection URL with the settings value
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+config.set_main_option("sqlalchemy.url", settings.async_database_url)
 
 
 def run_migrations_offline() -> None:
@@ -65,7 +65,7 @@ async def run_migrations_online() -> None:
     """
     # Create connection engine from settings URL
     connectable = create_async_engine(
-        settings.DATABASE_URL,
+        settings.async_database_url,
         poolclass=pool.NullPool,
     )
 
