@@ -54,11 +54,27 @@ class Settings(BaseSettings):
 
     @property
     def async_redis_url(self) -> str:
-        """Automatically adds ssl_cert_reqs for celery if using rediss://"""
+        """Automatically adds ssl_cert_reqs for celery if using rediss:// and encodes password"""
+        from urllib.parse import urlparse, urlunparse, quote
         url = self.REDIS_URL
+        
+        # Safely URL-encode the password if it contains special characters
+        parsed = urlparse(url)
+        if '@' in parsed.netloc:
+            creds, host = parsed.netloc.rsplit('@', 1)
+            if ':' in creds:
+                user, pwd = creds.split(':', 1)
+                # Only quote if not already quoted (simple heuristic: if it has special unquoted chars)
+                if not ("%" in pwd and len(pwd) > 2):
+                    pwd = quote(pwd)
+                new_netloc = f"{user}:{pwd}@{host}"
+                parsed = parsed._replace(netloc=new_netloc)
+                url = urlunparse(parsed)
+        
         if url.startswith("rediss://") and "ssl_cert_reqs=" not in url:
             separator = "&" if "?" in url else "?"
             url = f"{url}{separator}ssl_cert_reqs=CERT_NONE"
+            
         return url
 
     # JWT Authentication Settings
