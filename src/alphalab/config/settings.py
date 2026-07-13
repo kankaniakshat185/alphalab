@@ -32,6 +32,15 @@ class Settings(BaseSettings):
     # Async Database URL
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres_local_password_change_me@localhost:5432/alphalab"
 
+    @property
+    def async_database_url(self) -> str:
+        """Automatically converts a standard postgresql:// URL to postgresql+asyncpg://"""
+        if self.DATABASE_URL.startswith("postgresql://"):
+            return self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+        if self.DATABASE_URL.startswith("postgres://"):
+            return self.DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
+        return self.DATABASE_URL
+
     # Redis Task Broker URL
     REDIS_URL: str = "redis://:redis_local_password_change_me@localhost:6379/0"
 
