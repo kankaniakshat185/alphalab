@@ -11,8 +11,8 @@ from alphalab.config.settings import settings
 # Instantiate Celery app bound to Redis broker
 celery_app = Celery(
     "alphalab",
-    broker=settings.REDIS_URL,
-    backend=settings.REDIS_URL,
+    broker=settings.async_redis_url,
+    backend=settings.async_redis_url,
 )
 
 # Load configuration parameters

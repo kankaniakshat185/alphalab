@@ -210,7 +210,7 @@ export default function ClientDashboard({ factors }: ClientDashboardProps) {
             display: "block",
             fontWeight: 600,
           }}>
-            INSTITUTIONAL QUANTITATIVE RESEARCH PLATFORM
+            QUANTITATIVE FACTOR RESEARCH PLATFORM
           </span>
           <h1 style={{
             fontFamily: "var(--font-serif)",
@@ -249,6 +249,29 @@ export default function ClientDashboard({ factors }: ClientDashboardProps) {
               </button>
             </Link>
             
+            {(() => {
+              const demoFactor = factors.find(f => f.name === "Risk-Adjusted Momentum");
+              if (demoFactor) {
+                return (
+                  <Link href={`/history/${demoFactor.id}`} style={{ textDecoration: "none" }}>
+                    <button style={{
+                      background: "transparent",
+                      color: "var(--ink)",
+                      border: "1px solid var(--ink)",
+                      padding: "12px 24px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      fontFamily: "var(--font-sans)",
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}>
+                      Demo
+                    </button>
+                  </Link>
+                );
+              }
+              return null;
+            })()}
           </div>
         </div>
 
@@ -719,6 +742,44 @@ export default function ClientDashboard({ factors }: ClientDashboardProps) {
             <p style={{ fontSize: "13px", color: "var(--ink-light)", marginBottom: "0", lineHeight: 1.6 }}>
               A factor is "Robust" if its Sharpe Ratio survives the stress tests and perturbations. An "Overfit" factor looks great in a normal backtest but degrades rapidly when faced with noise, meaning it merely memorized the past rather than discovering a true market inefficiency.
             </p>
+          </div>
+
+          {/* Term 11 */}
+          <div style={{ padding: "24px", border: "1px solid var(--border-soft)", background: "var(--white)" }}>
+            <h3 style={{ fontFamily: "var(--font-serif)", fontSize: "20px", fontWeight: 600, marginBottom: "8px", color: "var(--ink)" }}>
+              11. Look-Ahead Bias
+            </h3>
+            <p style={{ fontSize: "13px", color: "var(--ink-light)", marginBottom: "16px", lineHeight: 1.6 }}>
+              Look-ahead bias occurs when a backtest accidentally uses data that would not have been known at the time of a trade. In algorithmic trading, this is a fatal flaw that creates falsely profitable simulations.
+            </p>
+            <div style={{ background: "rgba(26,28,24,0.03)", border: "1px solid var(--border-soft)", padding: "16px", fontSize: "12px", fontFamily: "var(--font-mono)" }}>
+              <span style={{ color: "var(--ink-faint)", fontWeight: 600 }}>Example:</span><br/>
+              Buying a stock because you know tomorrow's close price is higher. Always use the <span style={{color: "var(--green)"}}>Lag(x, d)</span> function to ensure your signals only use strictly historical data.
+            </div>
+          </div>
+
+          {/* Term 12 */}
+          <div style={{ padding: "24px", border: "1px solid var(--border-soft)", background: "var(--white)" }}>
+            <h3 style={{ fontFamily: "var(--font-serif)", fontSize: "20px", fontWeight: 600, marginBottom: "8px", color: "var(--ink)" }}>
+              12. Mean Reversion
+            </h3>
+            <p style={{ fontSize: "13px", color: "var(--ink-light)", marginBottom: "16px", lineHeight: 1.6 }}>
+              Mean reversion is the opposite of Momentum. It is the financial theory suggesting that asset prices will eventually return to their long-term average. Strategies built on this principle buy when prices drop sharply and sell when they spike.
+            </p>
+          </div>
+
+          {/* Term 13 */}
+          <div style={{ padding: "24px", border: "1px solid var(--border-soft)", background: "var(--white)" }}>
+            <h3 style={{ fontFamily: "var(--font-serif)", fontSize: "20px", fontWeight: 600, marginBottom: "8px", color: "var(--ink)" }}>
+              13. Overfitting
+            </h3>
+            <p style={{ fontSize: "13px", color: "var(--ink-light)", marginBottom: "16px", lineHeight: 1.6 }}>
+              Overfitting happens when a strategy is too perfectly tailored to historical data, capturing random noise instead of real economic patterns. An overfitted strategy will fail disastrously in live trading.
+            </p>
+            <div style={{ background: "rgba(26,28,24,0.03)", border: "1px solid var(--border-soft)", padding: "16px", fontSize: "12px", fontFamily: "var(--font-mono)" }}>
+              <span style={{ color: "var(--ink-faint)", fontWeight: 600 }}>Example:</span><br/>
+              Finding a rule that says "Buy every 3rd Tuesday if the temperature in New York is 60 degrees." It might perfectly match a past bull run by coincidence, but it has zero predictive power.
+            </div>
           </div>
 
         </div>

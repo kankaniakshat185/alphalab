@@ -21,6 +21,9 @@ const DSL_SECTIONS = [
       { key: "RollingMean(d)", desc: "d-day rolling arithmetic mean" },
       { key: "RollingStd(d)", desc: "d-day rolling standard deviation" },
       { key: "Lag(x, d)", desc: "x shifted backwards by d days (to detect look-ahead bias)" },
+      { key: "Delta(x, d)", desc: "d-day difference (change) of x" },
+      { key: "ts_max(x, d)", desc: "d-day rolling maximum of x" },
+      { key: "ts_min(x, d)", desc: "d-day rolling minimum of x" },
     ],
   },
   {

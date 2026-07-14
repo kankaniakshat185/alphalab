@@ -2,11 +2,31 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { logout } from "@/lib/actions";
+import { logout, getCurrentUser } from "@/lib/actions";
+import { useEffect, useState } from "react";
 
 export default function TopNav() {
   const pathname = usePathname();
   const router = useRouter();
+  const [userName, setUserName] = useState("Quant Admin");
+  const [userInitials, setUserInitials] = useState("AD");
+
+  useEffect(() => {
+    getCurrentUser().then(user => {
+      if (user && user.name) {
+        setUserName(user.name);
+        // Get first letter of first and last name if available, else first two letters
+        const parts = user.name.trim().split(" ");
+        let initials = parts[0][0];
+        if (parts.length > 1) {
+          initials += parts[parts.length - 1][0];
+        } else if (user.name.length > 1) {
+          initials += user.name[1];
+        }
+        setUserInitials(initials.toUpperCase());
+      }
+    });
+  }, []);
 
   const links = [
     { href: "/", label: "Home" },
@@ -45,9 +65,9 @@ export default function TopNav() {
 
         {/* Right: profile */}
         <div className="nav-right">
-          <span className="nav-profile-name">Quant Admin</span>
+          <span className="nav-profile-name">{userName}</span>
           <img
-            src="https://ui-avatars.com/api/?name=Admin&background=1a1c18&color=fff&size=64"
+            src={`https://ui-avatars.com/api/?name=${userInitials}&background=1a1c18&color=fff&size=64`}
             className="nav-avatar"
             alt="Avatar"
           />

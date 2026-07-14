@@ -12,7 +12,7 @@ class Settings(BaseSettings):
 
     # Storage Settings
     DUCKDB_PATH: str = "internal/data/alphalab.db"
-    DUCKDB_MEMORY_LIMIT: str = "2GB"
+    DUCKDB_MEMORY_LIMIT: str = "256MB"
 
     # Yahoo Provider Settings
     YAHOO_HTTP_TIMEOUT: int = 15
@@ -35,14 +35,47 @@ class Settings(BaseSettings):
     @property
     def async_database_url(self) -> str:
         """Automatically converts a standard postgresql:// URL to postgresql+asyncpg://"""
-        if self.DATABASE_URL.startswith("postgresql://"):
-            return self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
-        if self.DATABASE_URL.startswith("postgres://"):
-            return self.DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
-        return self.DATABASE_URL
+        url = self.DATABASE_URL
+        if url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+
+        # Strip all query parameters that confuse asyncpg (like channel_binding, options, sslmode)
+        # and strictly append ?ssl=require if it's a remote connection
+        if "?" in url:
+            base_url = url.split("?")[0]
+            url = f"{base_url}?ssl=require"
+
+        return url
 
     # Redis Task Broker URL
     REDIS_URL: str = "redis://:redis_local_password_change_me@localhost:6379/0"
+
+    @property
+    def async_redis_url(self) -> str:
+        """Automatically adds ssl_cert_reqs for celery if using rediss:// and encodes password"""
+        from urllib.parse import quote, urlparse, urlunparse
+        url = self.REDIS_URL
+
+        # Safely URL-encode the password if it contains special characters
+        parsed = urlparse(url)
+        if '@' in parsed.netloc:
+            creds, host = parsed.netloc.rsplit('@', 1)
+            if ':' in creds:
+                user, pwd = creds.split(':', 1)
+                # Only quote if not already quoted (simple heuristic: if it has special unquoted chars)
+                if not ("%" in pwd and len(pwd) > 2):
+                    pwd = quote(pwd)
+                new_netloc = f"{user}:{pwd}@{host}"
+                parsed = parsed._replace(netloc=new_netloc)
+                url = urlunparse(parsed)
+
+        if url.startswith("rediss://") and "ssl_cert_reqs=" not in url:
+            separator = "&" if "?" in url else "?"
+            url = f"{url}{separator}ssl_cert_reqs=CERT_NONE"
+
+        return url
 
     # JWT Authentication Settings
     JWT_SECRET: str = "change_me_in_production_extremely_long_secret_key_here"
