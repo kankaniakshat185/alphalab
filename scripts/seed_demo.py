@@ -1,3 +1,4 @@
+# ruff: noqa: E402, I001
 import asyncio
 import os
 import sys
