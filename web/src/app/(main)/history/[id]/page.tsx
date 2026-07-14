@@ -84,7 +84,7 @@ export default async function FactorDetailPage({ params }: { params: Promise<{ i
             Evaluating Factor Alpha
           </h2>
           <p style={{ fontSize: "12px", color: "var(--ink-light)", maxWidth: "440px", lineHeight: 1.6, margin: 0 }}>
-            Running walk-forward backtest on NIFTY 50 price data and executing synthetic robustness stress perturbations. Results will load automatically.
+            Executing an 18-fold mathematical stress test across 5 years of historical NIFTY 50 market data. This intensive computational grid may take up to 3 minutes to complete. Please leave this page open; your interactive dashboard will load automatically.
           </p>
 
           <AutoRefresh />

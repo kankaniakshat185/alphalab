@@ -49,7 +49,7 @@ export async function login(formData: FormData) {
     maxAge: 3600 * 24 * 7, // 1 week
   });
 
-  redirect("/lab");
+  redirect("/");
 }
 
 export async function register(formData: FormData) {
