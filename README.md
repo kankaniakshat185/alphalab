@@ -4,7 +4,7 @@
 
 **An institutional-grade, robustness-aware quantitative factor research platform built for NIFTY 50 equities.**
 
-Built as a 2-member team by [Akshat Kankani](https://github.com/kankaniakshat185) and [Vaishnavi Rai](https://github.com/VaishnaviRai287).  
+Built as a collaborative 2-member team by [Akshat Kankani](https://github.com/kankaniakshat185) and [Vaishnavi Rai](https://github.com/VaishnaviRai287).  
 
 [![Lint](https://github.com/VaishnaviRai287/alphalab/actions/workflows/lint.yml/badge.svg)](https://github.com/VaishnaviRai287/alphalab/actions/workflows/lint.yml)
 [![Test](https://github.com/VaishnaviRai287/alphalab/actions/workflows/test.yml/badge.svg)](https://github.com/VaishnaviRai287/alphalab/actions/workflows/test.yml)
