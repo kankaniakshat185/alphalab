@@ -6,14 +6,6 @@
 
 Built as a collaborative 2-member team by [Akshat Kankani](https://github.com/kankaniakshat185) and [Vaishnavi Rai](https://github.com/VaishnaviRai287).  
 
-[![Lint](https://github.com/VaishnaviRai287/alphalab/actions/workflows/lint.yml/badge.svg)](https://github.com/VaishnaviRai287/alphalab/actions/workflows/lint.yml)
-[![Test](https://github.com/VaishnaviRai287/alphalab/actions/workflows/test.yml/badge.svg)](https://github.com/VaishnaviRai287/alphalab/actions/workflows/test.yml)
-[![Install](https://github.com/VaishnaviRai287/alphalab/actions/workflows/install.yml/badge.svg)](https://github.com/VaishnaviRai287/alphalab/actions/workflows/install.yml)
-[![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://python.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-
-*A two-member engineering project by [Vaishnavi Rai](https://github.com/VaishnaviRai287) and [Akshat Kankani](https://github.com/kankaniakshat185).*
-
 </div>
 
 ---
