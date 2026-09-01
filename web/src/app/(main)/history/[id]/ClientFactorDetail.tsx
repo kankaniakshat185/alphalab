@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
+import { useReactToPrint } from "react-to-print";
 import Link from "next/link";
 import {
   LineChart,
@@ -197,8 +198,41 @@ export default function ClientFactorDetail({ detail, backtest, robustness }: Cli
     }
   ];
 
+  const componentRef = React.useRef<HTMLDivElement>(null);
+  const handlePrint = useReactToPrint({
+    contentRef: componentRef,
+    documentTitle: `AlphaLab_TearSheet_${detail.name.replace(/\s+/g, '_')}`
+  });
+
   return (
-    <>
+    <div ref={componentRef} className="tear-sheet-container">
+      {/* ─── Export Button (Hidden in Print) ─── */}
+      <div className="no-print" style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
+        <button 
+          onClick={() => handlePrint()}
+          style={{
+            background: "var(--ink)",
+            color: "#fff",
+            border: "none",
+            padding: "8px 16px",
+            fontSize: "12px",
+            fontWeight: 600,
+            cursor: "pointer",
+            fontFamily: "var(--font-sans)",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px"
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Export PDF Tear Sheet
+        </button>
+      </div>
+
       {/* ─── Metric tiles ─── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", marginBottom: "32px", marginLeft: "1px" }}>
         {cards.map((m, i, arr) => (
@@ -617,6 +651,6 @@ export default function ClientFactorDetail({ detail, backtest, robustness }: Cli
         stressedEquityCurve={robustness?.stressed_equity_curve || []}
         overallScore={robustness?.overall_score ?? 1.0}
       />
-    </>
+    </div>
   );
 }

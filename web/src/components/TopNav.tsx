@@ -8,8 +8,8 @@ import { useEffect, useState } from "react";
 export default function TopNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const [userName, setUserName] = useState("Quant Admin");
-  const [userInitials, setUserInitials] = useState("AD");
+  const [userName, setUserName] = useState("");
+  const [userInitials, setUserInitials] = useState("");
 
   useEffect(() => {
     getCurrentUser().then(user => {

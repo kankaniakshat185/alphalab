@@ -1245,3 +1245,41 @@ body {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+/* ══════════════════════════════════════════
+   PRINT STYLES FOR TEAR SHEET
+══════════════════════════════════════════ */
+@media print {
+  /* Hide unnecessary elements during print */
+  .no-print, .top-nav, .global-footer, .btn-add {
+    display: none !important;
+  }
+
+  body {
+    background-color: var(--white) !important;
+    background-image: none !important;
+  }
+
+  .main-content {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Force exact colors to keep the UI mirror effect */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .tear-sheet-container {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Prevent page breaks inside cards and charts */
+  .hover-card-style, .chart-container {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
